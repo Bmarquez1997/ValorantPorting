@@ -22,7 +22,7 @@ public enum EAssetType
     // TODO: Add menu group enum?
     // Todo: Styles
 
-    [Description("Agents"), Export(EExportType.Mesh), ViewDimensions(70, 80)]
+    [Description("Agents"), Export(EExportType.Mesh), ViewDimensions(100, 100)]
     Agent,
 
     [Description("Player Cards"), Export(EExportType.Texture), ViewDimensions(70, 80)]

@@ -61,6 +61,7 @@ public partial class HomeViewModel : ViewModelBase
         
         TaskService.Run(async () =>
         {
+            // TODO: Add Changelog
             var changelogEntries = await EndpointsVM.ValorantPorting.GetChangelogsAsync();
             if (changelogEntries is null) return;
 
@@ -72,6 +73,7 @@ public partial class HomeViewModel : ViewModelBase
 
         TaskService.Run(async () =>
         {
+            // TODO: Add FeaturedArt section
             var featured = await EndpointsVM.ValorantPorting.GetFeaturedAsync();
             if (featured is null) return;
 

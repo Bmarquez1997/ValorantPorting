@@ -115,12 +115,13 @@ public partial class AssetItem : UserControl
             var fullBitmap = new SKBitmap(iconBitmap.Width, iconBitmap.Height, iconBitmap.ColorType, iconBitmap.AlphaType);
             using (var fullCanvas = new SKCanvas(fullBitmap))
             {
-                fullCanvas.DrawRect(new SKRect(0, 0, getAssetWidth(iconBitmap), getAssetHeight(iconBitmap)), new SKPaint
-                {
-                    Shader = SkiaExtensions.RadialGradient(iconBitmap.Width, SKColor.Parse("#364966"), SKColor.Parse("#30383f"))
-                });
+                //TODO: Figure out how to fill background
+                // fullCanvas.DrawRect(new SKRect(0, 0, getAssetWidth(iconBitmap), getAssetHeight(iconBitmap)), new SKPaint
+                // {
+                //     Shader = SkiaExtensions.RadialGradient(iconBitmap.Width, SKColor.Parse("#364966"), SKColor.Parse("#30383f"))
+                // });
 
-                fullCanvas.DrawBitmap(iconBitmap, new SKRect(-16, 0, fullBitmap.Width + 16, fullBitmap.Height));
+                fullCanvas.DrawBitmap(iconBitmap, new SKRect(0, 0, fullBitmap.Width, fullBitmap.Height));
             }
 
             PreviewImage = new Bitmap(fullBitmap.Encode(SKEncodedImageFormat.Png, 100).AsStream());

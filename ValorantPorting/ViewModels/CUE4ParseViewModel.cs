@@ -126,7 +126,6 @@ public class CUE4ParseViewModel : ViewModelBase
 
         Provider.LoadLocalization(AppSettings.Current.Language);
         Provider.LoadVirtualPaths();
-        Provider.LoadVirtualCache();
         //await LoadMappings();
 
         await LoadConsoleVariables();
@@ -281,7 +280,7 @@ public class CUE4ParseViewModel : ViewModelBase
 
     private async Task LoadConsoleVariables()
     {
-        Provider.LoadIniConfigs();
+        Provider.PostMount();
         var tokens = Provider.DefaultEngine.Sections.FirstOrDefault(source => source.Name == "ConsoleVariables")?.Tokens ?? [];
         foreach (var token in tokens)
         {

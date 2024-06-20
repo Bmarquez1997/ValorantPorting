@@ -316,21 +316,10 @@ public partial class AssetLoader : ObservableObject
             await CustomLoadingHandler(this);
             return;
         }
-
-        var classes = new HashSet<string>();
         
-        CUE4ParseVM.AssetRegistry.Where(data => data.TagsAndValues.Keys.Contains("PrimaryAssetType")).ToList().ForEach(data => AddTypes(classes, data));
-
-        Log.Information("Starting Classes:");
-        foreach (var className in classes.Order())
-        {
-            Log.Information(className);
-        }
-        Log.Information("Ending Classes");
-        var assets = CUE4ParseVM.AssetRegistry.Where(data => isMatchingPrimaryTypeAsset(data) && hasValidType(data)).ToList();
-
-        int numRemovedName = assets.RemoveAll(x => x.AssetName.Text.Contains("Random", StringComparison.OrdinalIgnoreCase) || x.AssetName.Text.Contains("NPE", StringComparison.OrdinalIgnoreCase));
-        int numRemovedPath = assets.RemoveAll(x => x.ObjectPath.Contains("Random", StringComparison.OrdinalIgnoreCase) || x.ObjectPath.Contains("NPE", StringComparison.OrdinalIgnoreCase));
+        var assets = CUE4ParseVM.AssetRegistry.Where(data => !data.AssetName.Text.Contains("NPE") 
+                                                                        && IsMatchingPrimaryTypeAsset(data) 
+                                                                        && HasValidType(data)).ToList();
 
         Total = assets.Count;
         //foreach (var data in assets)
@@ -352,19 +341,14 @@ public partial class AssetLoader : ObservableObject
 
         Loaded = Total;
     }
-
-    private void AddTypes(HashSet<string> classes, FAssetData asset)
-    {
-        asset.TagsAndValues.Where(tag => tag.Key.PlainText == "PrimaryAssetType").ToList().ForEach(tag => classes.Add(tag.Value));
-    }
     
-    private bool isMatchingPrimaryTypeAsset(FAssetData asset)
+    private bool IsMatchingPrimaryTypeAsset(FAssetData asset)
     {
         int tagCount = asset.TagsAndValues.Where(tag => Classes.Contains(tag.Value) && tag.Key.PlainText == "PrimaryAssetType").Count();
         return tagCount > 0;
     }
 
-    private bool hasValidType(FAssetData asset)
+    private bool HasValidType(FAssetData asset)
     {
         return Types.Count() == 0 || Types.Where(type => asset.PackagePath.Text.Contains(type)).Count() > 0;
     }
