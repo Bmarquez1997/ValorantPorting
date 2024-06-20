@@ -1,0 +1,53 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:viewmodels="clr-namespace:ValorantPorting.ViewModels"
+             xmlns:ext="clr-namespace:ValorantPorting.Framework.Extensions;assembly=ValorantPorting.Framework"
+             xmlns:controls="clr-namespace:ValorantPorting.Controls"
+             xmlns:local="clr-namespace:ValorantPorting"
+             xmlns:cue4parse="clr-namespace:CUE4Parse;assembly=CUE4Parse"
+             xmlns:avalonia="clr-namespace:ValorantPorting.Controls.Avalonia"
+             xmlns:extensions="clr-namespace:ValorantPorting.Extensions"
+             mc:Ignorable="d" d:DesignWidth="1280" d:DesignHeight="720"
+             x:Class="ValorantPorting.Views.WelcomeView"
+             x:DataType="viewmodels:WelcomeViewModel">
+    <Grid ColumnDefinitions="* 8* *" HorizontalAlignment="Center" Margin="{ext:Space 1}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="0.5*" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="{ext:Space 5}" />
+            <RowDefinition Height="7*" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+        <TextBlock Grid.Column="1" Grid.Row="1" Text="Welcome to ValorantPorting!" FontWeight="SemiBold" FontSize="42"
+                   HorizontalAlignment="Center" VerticalAlignment="Center" />
+        <TextBlock Grid.Column="1" Grid.Row="2" Text="Please select your Valorant installation type to get started."
+                   Opacity="0.75" HorizontalAlignment="Center" VerticalAlignment="Center" />
+        <controls:GroupBox Grid.Column="1" Grid.Row="4">
+            <avalonia:AnimatableTabControl SelectionChanged="OnTabSelectionChanged">
+                <TabControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" />
+                    </ItemsPanelTemplate>
+                </TabControl.ItemsPanel>
+
+                <TabItem Header="Local" Tag="{x:Static local:ELoadingType.Local}">
+                    <Grid RowDefinitions="8 * * * *">
+                        <controls:SettingBox Grid.Row="1" DisplayName="Archive Path"
+                                             Path="{Binding LocalArchivePath, Mode=TwoWay}" Icon="Folder">
+                            <Button Content="Browse" Command="{Binding BrowseLocalArchivePathCommand}" />
+                        </controls:SettingBox>
+                    </Grid>
+                </TabItem>
+                <TabItem Header="Live" Tag="{x:Static local:ELoadingType.Live}">
+                    <TextBlock Text="No settings are required for Valorant Live." Opacity="0.5"
+                               HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </TabItem>
+            </avalonia:AnimatableTabControl>
+        </controls:GroupBox>
+        <Button Grid.Column="1" Grid.Row="5" Content="Continue" Command="{Binding ContinueCommand}"
+                HorizontalAlignment="Center" VerticalAlignment="Center" IsEnabled="{Binding CanContinue}" />
+    </Grid>
+</UserControl>

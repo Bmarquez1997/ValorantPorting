@@ -1,0 +1,52 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:viewmodels="clr-namespace:ValorantPorting.ViewModels"
+        xmlns:material="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
+        xmlns:framework="clr-namespace:ValorantPorting.Framework;assembly=ValorantPorting.Framework"
+        xmlns:ext="clr-namespace:ValorantPorting.Framework.Extensions;assembly=ValorantPorting.Framework"
+        x:Class="ValorantPorting.Application.AppWindow"
+        x:DataType="viewmodels:ApplicationViewModel"
+        Title="ValorantPorting" Width="1280" Height="720"
+        WindowStartupLocation="CenterScreen" FontFamily="Segoe UI"
+        Background="{x:Null}" TransparencyLevelHint="{Binding Theme.TransparencyLevels}"
+        ExtendClientAreaToDecorationsHint="True" ExtendClientAreaChromeHints="NoChrome"
+        ExtendClientAreaTitleBarHeightHint="0" Icon="avares://ValorantPorting.Framework/Assets/Logo/ValorantPorting.ico">
+    <Grid RowDefinitions="30, *">
+        <ExperimentalAcrylicBorder Grid.Row="0" Grid.RowSpan="2" IsVisible="{Binding !Theme.UseMicaBackground}" IsHitTestVisible="False">
+            <ExperimentalAcrylicBorder.Material>
+                <ExperimentalAcrylicMaterial BackgroundSource="Digger" MaterialOpacity="1.1" TintColor="{Binding Theme.BackgroundColor}" TintOpacity="1"/>
+            </ExperimentalAcrylicBorder.Material>
+        </ExperimentalAcrylicBorder>
+        <Grid Grid.Row="0" PointerPressed="OnPointerPressed" Background="Transparent" HorizontalAlignment="Stretch">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="{ext:Space 1}" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="{ext:Space 0.25}" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <TextBlock Grid.Column="1" Text="ValorantPorting" FontWeight="SemiBold" FontSize="16"
+                       HorizontalAlignment="Left" VerticalAlignment="Center" />
+            <TextBlock Grid.Column="3" Text="{Binding VersionString}" Opacity="0.5" FontSize="13" Margin="0 2 0 0"
+                       HorizontalAlignment="Left" VerticalAlignment="Center" />
+            <Grid Grid.Column="4" ColumnDefinitions="* 4 * 4 *" HorizontalAlignment="Right" Margin="{ext:Space 0.5}">
+                <Button Grid.Column="0" Content="{material:MaterialIconExt Kind=Minimize}" Click="OnMinimizeClicked"
+                        CornerRadius="2" Classes="MinimizeMaximize" Width="24" Height="24" HorizontalAlignment="Center"
+                        VerticalAlignment="Center" />
+                <Button Grid.Column="2" Content="{material:MaterialIconExt Kind=Maximize}" Click="OnMaximizeClicked"
+                        CornerRadius="2" Classes="MinimizeMaximize" Width="24" Height="24" HorizontalAlignment="Center"
+                        VerticalAlignment="Center" />
+                <Button Grid.Column="4" Content="{material:MaterialIconExt Kind=Close}" Click="OnCloseClicked"
+                        CornerRadius="2" Classes="CloseWindow" Width="24" Height="24" HorizontalAlignment="Center"
+                        VerticalAlignment="Center" />
+            </Grid>
+        </Grid>
+
+        <TransitioningContentControl Grid.Row="1" Content="{Binding CurrentView}">
+            <TransitioningContentControl.PageTransition>
+                <framework:ViewTransition />
+            </TransitioningContentControl.PageTransition>
+        </TransitioningContentControl>
+    </Grid>
+</Window>

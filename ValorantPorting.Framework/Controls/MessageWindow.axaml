@@ -1,0 +1,54 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ext="clr-namespace:ValorantPorting.Framework.Extensions;assembly=ValorantPorting.Framework"
+        xmlns:material="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
+        xmlns:controls="clr-namespace:ValorantPorting.Framework.Controls"
+        x:Class="ValorantPorting.Framework.Controls.MessageWindow"
+        x:DataType="controls:MessageWindowModel" Width="360" SizeToContent="Height" WindowStartupLocation="CenterOwner"
+        FontFamily="Segoe UI"
+        Background="{x:Null}" TransparencyLevelHint="{Binding Theme.TransparencyLevels}"
+        ExtendClientAreaToDecorationsHint="True" ExtendClientAreaChromeHints="NoChrome"
+        ExtendClientAreaTitleBarHeightHint="0" Title="{Binding Title}" Icon="avares://ValorantPorting.Framework/Assets/Logo/ValorantPorting.ico">
+    <Grid RowDefinitions="30, *">
+        <ExperimentalAcrylicBorder Grid.Row="0" Grid.RowSpan="2" IsVisible="{Binding !Theme.UseMicaBackground}" IsHitTestVisible="False">
+            <ExperimentalAcrylicBorder.Material>
+                <ExperimentalAcrylicMaterial BackgroundSource="Digger" MaterialOpacity="1.1" TintColor="{Binding Theme.BackgroundColor}" TintOpacity="1"/>
+            </ExperimentalAcrylicBorder.Material>
+        </ExperimentalAcrylicBorder>
+        <Grid Grid.Row="0" PointerPressed="OnPointerPressed" Background="#25000000" HorizontalAlignment="Stretch">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="{ext:Space 1}" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="{ext:Space 0.25}" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <TextBlock Grid.Column="1" Text="{Binding Title}" HorizontalAlignment="Left" VerticalAlignment="Center" />
+            <Grid Grid.Column="3" ColumnDefinitions="*" HorizontalAlignment="Right" Margin="{ext:Space 0.5}">
+                <Button Grid.Column="0" Content="{material:MaterialIconExt Kind=Close}" Click="OnCloseClicked"
+                        CornerRadius="2" Classes="CloseWindow" Width="24" Height="24" HorizontalAlignment="Center"
+                        VerticalAlignment="Center" />
+            </Grid>
+        </Grid>
+        <Grid Grid.Row="1" RowDefinitions="Auto Auto" ColumnDefinitions="* 4*">
+            <material:MaterialIcon Grid.Row="0" Grid.Column="0" Kind="Alert" Width="40" Height="40"
+                                   Margin="{ext:Space 1}" HorizontalAlignment="Center" VerticalAlignment="Top" />
+            <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding Text}" Margin="{ext:Space 1}" TextAlignment="Left"
+                       TextWrapping="Wrap" />
+            <ItemsControl Grid.Row="1" Grid.Column="1" HorizontalAlignment="Right" ItemsSource="{Binding Buttons}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <StackPanel Orientation="Horizontal"/>
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate DataType="controls:MessageWindowButton">
+                        <Button Margin="{ext:Space 0, 1, 1, 1}" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                Content="{Binding Label}" Command="{Binding Command}" />
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </Grid>
+
+    </Grid>
+</Window>

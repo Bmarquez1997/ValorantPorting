@@ -1,89 +1,368 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Threading;
+using System.Net.Http.Headers;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using CommunityToolkit.Mvvm.ComponentModel;
 using CUE4Parse.Encryption.Aes;
+using CUE4Parse.MappingsProvider;
 using CUE4Parse.UE4.AssetRegistry;
 using CUE4Parse.UE4.AssetRegistry.Objects;
+using CUE4Parse.UE4.Assets.Exports.Animation;
+using CUE4Parse.UE4.Assets.Objects;
+using CUE4Parse.UE4.Assets.Utils;
+using CUE4Parse.UE4.IO;
+using CUE4Parse.UE4.Objects.Core.Math;
+using CUE4Parse.UE4.Objects.Core.Misc;
+using CUE4Parse.UE4.Readers;
 using CUE4Parse.UE4.Versions;
-using ValorantPorting.AppUtils;
+using CUE4Parse.Utils;
+using EpicManifestParser.Objects;
+using ValorantPorting.Application;
+using ValorantPorting.Controls;
+using ValorantPorting.Extensions;
+using ValorantPorting.Framework;
+using ValorantPorting.Framework.Controls;
+using ValorantPorting.Services;
 using ValorantPorting.Services.Endpoints;
+using ValorantPorting.Framework.Services;
+using ValorantPorting.Framework.ViewModels.Endpoints;
+using ValorantPorting.ViewModels.Endpoints.Models;
+using Serilog;
+using UE4Config.Parsing;
 
 namespace ValorantPorting.ViewModels;
 
-public class CUE4ParseViewModel : ObservableObject
+public class CUE4ParseViewModel : ViewModelBase
 {
-    public static readonly VersionContainer Version = new(EGame.GAME_Valorant);
-    public readonly List<FAssetData> AssetDataBuffers = new();
-    public readonly ValorantPortingFileProvider Provider;
+    public readonly HybridFileProvider Provider = AppSettings.Current.LoadingType switch
+    {
+        ELoadingType.Local => new HybridFileProvider(AppSettings.Current.LocalArchivePath, [], LatestVersionContainer),
+        ELoadingType.Live => new HybridFileProvider(LatestVersionContainer)
+    };
+    //public readonly ValorantPortingFileProvider Provider = AppSettings.Current.LoadingType switch
+    //{
+    //    ELoadingType.Local => new ValorantPortingFileProvider(new DirectoryInfo(AppSettings.Current.LocalArchivePath), SearchOption.AllDirectories, true, LatestVersionContainer),
+    //    ELoadingType.Live => new ValorantPortingFileProvider(true, LatestVersionContainer)
+    //};
 
-    public FAssetRegistryState? AssetRegistry;
+    public readonly HybridFileProvider OptionalProvider = AppSettings.Current.LoadingType switch
+    {
+        ELoadingType.Local => new HybridFileProvider(AppSettings.Current.LocalArchivePath,  version: LatestVersionContainer, isOptionalLoader: true),
+        ELoadingType.Live => new HybridFileProvider(LatestVersionContainer)
+    };
+
+    public Manifest? ValorantLive;
+    public readonly List<FAssetData> AssetRegistry = [];
+    public readonly RarityCollection[] RarityColors = new RarityCollection[8];
+    public List<UAnimMontage> MaleLobbyMontages = [];
+    public readonly List<UAnimMontage> FemaleLobbyMontages = [];
+
+    public static readonly List<DirectoryInfo> ExtraDirectories = [new DirectoryInfo(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ValorantGame", "Saved", "PersistentDownloadDir", "GameCustom", "InstalledBundles"))];
+
+    private static readonly Regex ValorantLiveRegex = new(@"^ValorantGame(/|\\)Content(/|\\)Paks(/|\\)(pakchunk(?:0|10.*|\w+)-WindowsClient|global)\.(pak|utoc)$", RegexOptions.Compiled | RegexOptions.Singleline | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+    private static readonly VersionContainer LatestVersionContainer = new(Globals.LatestGameVersion);
+
+    private static readonly List<string> MaleLobbyMontagePaths = 
+    [
+        "ValorantGame/Content/Animation/Game/MainPlayer/Menu/BR/Male_Commando_Idle_01_M",
+        "ValorantGame/Content/Animation/Game/MainPlayer/Menu/BR/Male_commando_Idle_2_M"
+    ];
     
-    public CUE4ParseViewModel(string directory, EInstallType installType)
+    private static readonly List<string> FemaleLobbyMontagePaths = 
+    [
+        "ValorantGame/Content/Animation/Game/MainPlayer/Menu/BR/Female_Commando_Idle_02_Rebirth_Montage",
+        "ValorantGame/Content/Animation/Game/MainPlayer/Menu/BR/Female_Commando_Idle_03_Montage"
+    ];
+
+    public HashSet<string> MeshEntries;
+    private static readonly string[] MeshRemoveList = {
+        "/Sounds",
+        "/Playsets",
+        "/UI",
+        "/2dAssets",
+        "/Textures",
+        "/Audio",
+        "/Sound",
+        "/Materials",
+        "/Icons",
+        "/Anims",
+        "/DataTables",
+        "/TextureData",
+        "/ActorBlueprints",
+        "/Physics",
+        "/_Verse",
+
+        "/PPID_",
+        "/MI_",
+        "/MF_",
+        "/NS_",
+        "/T_",
+        "/P_",
+        "/TD_",
+        "/MPC_",
+        "/BP_",
+
+        "Engine/",
+
+        "_Physics",
+        "_AnimBP",
+        "_PhysMat",
+        "_PoseAsset",
+
+        "PlaysetGrenade",
+        "NaniteDisplacement"
+    };
+
+    public override async Task Initialize()
     {
-        if (installType is EInstallType.Local && !Directory.Exists(directory))
-        {
-            AppLog.Warning(
-                "Installation Not Found, Valorant installation path does not exist or has not been set. Please go to settings to verify you've set the right path and restart. The program will not work properly on Local Installation mode if you do not set it.");
-            return;
-        }
-
-        Provider = installType switch
-        {
-            EInstallType.Local => new ValorantPortingFileProvider(new DirectoryInfo(directory), SearchOption.AllDirectories, true, Version),
-            EInstallType.Live => new ValorantPortingFileProvider(true, Version)
-        };
-    }
-
-    private ApiEndpointViewModel _apiEndpointView => ApiEndpointView;
-
-    public async Task Initialize()
-    {
-        if (Provider is null) return;
-
+        HomeVM.Update("Loading Game Archive");
         await InitializeProvider();
-        await InitializeKeys();
+        if ((AppSettings.Current.UseCosmeticStreaming && AppSettings.Current.LoadingType == ELoadingType.Local) || AppSettings.Current.LoadingType == ELoadingType.Live) await LoadCosmeticStreaming();
 
+        await LoadKeys();
+
+        Provider.LoadLocalization(AppSettings.Current.Language);
         Provider.LoadVirtualPaths();
+        Provider.LoadVirtualCache();
+        //await LoadMappings();
 
-        var assetArchive = await Provider.TryCreateReaderAsync("ShooterGame/AssetRegistry.bin");
-        if (assetArchive is not null)
-        {
-            AssetRegistry = new FAssetRegistryState(assetArchive);
-            AssetDataBuffers.AddRange(AssetRegistry.PreallocatedAssetDataBuffers);
-        }
+        await LoadConsoleVariables();
+
+        HomeVM.Update("Loading Asset Registry");
+        await LoadAssetRegistries();
+
+        HomeVM.Update("Loading Application Assets");
+        await LoadRequiredAssets();
     }
-
-    private async Task InitializeKeys()
-    {
-        var keyResponse = AppSettings.Current.AesResponse;
-        var keyString = "0x4BE71AF2459CF83899EC9DC2CB60E22AC4B3047E0211034BBABE9D174C069DD6";
-        await Provider.SubmitKeyAsync(Globals.ZERO_GUID, new FAesKey(keyString));
-    }
-
 
     private async Task InitializeProvider()
     {
-        switch (AppSettings.Current.InstallType)
+        switch (AppSettings.Current.LoadingType)
         {
-            case EInstallType.Local:
+            case ELoadingType.Local:
             {
-                Provider.InitializeLocal();
+                //Provider.InitializeLocal();
+                Provider.Initialize();
+                //OptionalProvider.Initialize();
                 break;
             }
-            case EInstallType.Live:
+            case ELoadingType.Live:
             {
-                var manifestInfo = _apiEndpointView.ValorantApi.GetManifest(CancellationToken.None);
-                if (manifestInfo == null)
-                    throw new Exception(
-                        "Could not load latest Valorant manifest, you may have to switch to your local installation.");
-                for (var i = 0; i < manifestInfo.Paks.Length; i++)
-                    Provider.Initialize(manifestInfo.Paks[i].GetFullName(), new[] { manifestInfo.GetPakStream(i) });
+                await InitializeValorantLive();
                 break;
             }
         }
+    }
+
+    public async Task InitializeValorantLive()
+    {
+        if (ValorantLive is not null) return;
+
+        var manifestInfo = await EndpointsVM.EpicGames.GetManifestInfoAsync();
+        if (manifestInfo is null) return;
+
+        HomeVM.Update($"Loading {manifestInfo.BuildVersion}");
+
+        var manifestPath = Path.Combine(DataFolder.FullName, manifestInfo.FileName);
+        ValorantLive = await EndpointsVM.EpicGames.GetManifestAsync(manifestInfo.Uris.First().Uri.AbsoluteUri, manifestPath);
+
+        var files = ValorantLive.FileManifests.Where(fileManifest => ValorantLiveRegex.IsMatch(fileManifest.Name));
+        foreach (var fileManifest in files)
+            Provider.RegisterVfs(fileManifest.Name,
+                new Stream[] { fileManifest.GetStream() },
+                it => new FStreamArchive(it, ValorantLive.FileManifests.First(x => x.Name.Equals(it)).GetStream(), Provider.Versions));
+    }
+
+    private async Task LoadCosmeticStreaming()
+    {
+        try
+        {
+            var tocPath = await GetTocPath(AppSettings.Current.LoadingType);
+            if (string.IsNullOrEmpty(tocPath)) return;
+
+            var tocName = tocPath.SubstringAfterLast("/");
+            var onDemandFile = new FileInfo(Path.Combine(DataFolder.FullName, tocName));
+            if (!onDemandFile.Exists || onDemandFile.Length == 0) await EndpointsVM.DownloadFileAsync($"https://download.epicgames.com/{tocPath}", onDemandFile.FullName);
+
+            await Provider.RegisterVfs(new IoChunkToc(onDemandFile),
+                new IoStoreOnDemandOptions
+                {
+                    ChunkBaseUri = new Uri("https://download.epicgames.com/ias/valorant/", UriKind.Absolute),
+                    ChunkCacheDirectory = ChunkCacheFolder,
+                    Authorization = new AuthenticationHeaderValue("Bearer", AppSettings.Current.EpicGamesAuth?.Token),
+                    Timeout = TimeSpan.FromSeconds(10)
+                });
+            await Provider.MountAsync();
+        }
+        catch (Exception)
+        {
+            MessageWindow.Show("Failed to Initialize On-Demand IoStore", "Failed to initialize cosmetic texture streaming, please enable \"Pre-Download Streamed Assets\" for Valorant in the Epic Games Launcher and disable Cosmetic Streaming in Valorant Porting settings to remove this popup.");
+        }
+    }
+
+    private async Task<string> GetTocPath(ELoadingType loadingType)
+    {
+        var onDemandText = string.Empty;
+        switch (loadingType)
+        {
+            case ELoadingType.Local:
+            {
+                var onDemandPath = Path.Combine(AppSettings.Current.LocalArchivePath, "..\\..\\..\\Cloud\\IoStoreOnDemand.ini");
+                if (File.Exists(onDemandPath)) onDemandText = await File.ReadAllTextAsync(onDemandPath);
+                break;
+            }
+            case ELoadingType.Live:
+            {
+                var onDemandFile = ValorantLive?.FileManifests.FirstOrDefault(x => x.Name.Equals("Cloud/IoStoreOnDemand.ini", StringComparison.OrdinalIgnoreCase));
+                if (onDemandFile is not null) onDemandText = onDemandFile.GetStream().ReadToEnd().BytesToString();
+                break;
+            }
+        }
+
+        if (string.IsNullOrEmpty(onDemandText)) return string.Empty;
+
+        var onDemandIni = new SimpleIni(onDemandText);
+        return onDemandIni["Endpoint"]["TocPath"].Replace("\"", string.Empty);
+    }
+
+    private async Task LoadKeys()
+    {
+        //var aes = await EndpointsVM.ValorantPorting.GetBackupAsync<AesResponse>(ValorantPortingEndpoint.AES_URL) ?? await EndpointsVM.ValorantCentral.GetKeysAsync() ?? AppSettings.Current.LastAesResponse;
+        //if (aes is null) return;
+
+        //AppSettings.Current.LastAesResponse = aes;
+        //await Provider.SubmitKeyAsync(Globals.ZERO_GUID, new FAesKey(aes.MainKey));
+        //await OptionalProvider.SubmitKeyAsync(Globals.ZERO_GUID, new FAesKey(aes.MainKey));
+        await Provider.SubmitKeyAsync(Globals.ZERO_GUID, new FAesKey(Globals.KEY_STRING));
+        //foreach (var key in aes.DynamicKeys)
+        //{
+        //    await Provider.SubmitKeyAsync(new FGuid(key.GUID), new FAesKey(key.Key));
+        //    await OptionalProvider.SubmitKeyAsync(new FGuid(key.GUID), new FAesKey(key.Key));
+        //}
+    }
+
+    private async Task LoadMappings()
+    {
+        var mappingsPath = await GetEndpointMappings() ?? GetLocalMappings();
+        if (mappingsPath is null) return;
+
+        //Provider.MappingsContainer = new FileUsmapTypeMappingsProvider(mappingsPath);
+        //OptionalProvider.MappingsContainer = new FileUsmapTypeMappingsProvider(mappingsPath);
+        Log.Information("Loaded Mappings: {Path}", mappingsPath);
+    }
+
+    private async Task<string?> GetEndpointMappings()
+    {
+        var mappings = await EndpointsVM.ValorantPorting.GetBackupAsync<MappingsResponse[]>(ValorantPortingEndpoint.MAPPINGS_URL) ?? await EndpointsVM.ValorantCentral.GetMappingsAsync(); // ?? BackupAPI?.GetMappings();
+        if (mappings is null) return null;
+        if (mappings.Length <= 0) return null;
+
+        var foundMappings = mappings.FirstOrDefault();
+        if (foundMappings is null) return null;
+
+        var mappingsFilePath = Path.Combine(App.DataFolder.FullName, foundMappings.Filename);
+        if (File.Exists(mappingsFilePath)) return null;
+
+        await EndpointsVM.DownloadFileAsync(foundMappings.URL, mappingsFilePath);
+        return mappingsFilePath;
+    }
+
+    private string? GetLocalMappings()
+    {
+        var usmapFiles = App.DataFolder.GetFiles("*.usmap");
+        if (usmapFiles.Length <= 0) return null;
+
+        var latestUsmap = usmapFiles.MaxBy(x => x.LastWriteTime);
+        return latestUsmap?.FullName;
+    }
+
+    private async Task LoadConsoleVariables()
+    {
+        Provider.LoadIniConfigs();
+        var tokens = Provider.DefaultEngine.Sections.FirstOrDefault(source => source.Name == "ConsoleVariables")?.Tokens ?? [];
+        foreach (var token in tokens)
+        {
+            if (token is not InstructionToken instructionToken) continue;
+            var value = instructionToken.Value.Equals("1");
+            
+            switch (instructionToken.Key)
+            {
+                case "r.StaticMesh.KeepMobileMinLODSettingOnDesktop":
+                case "r.SkeletalMesh.KeepMobileMinLODSettingOnDesktop":
+                    Provider.Versions[instructionToken.Key[2..]] = value;
+                    continue;
+            }
+        }
+    }
+
+    private async Task LoadAssetRegistries()
+    {
+        var assetRegistries = Provider.Files.Where(x => x.Key.Contains("AssetRegistry", StringComparison.OrdinalIgnoreCase));
+        foreach (var (path, file) in assetRegistries)
+        {
+            if (path.Contains("Plugin", StringComparison.OrdinalIgnoreCase) || path.Contains("Editor", StringComparison.OrdinalIgnoreCase)) continue;
+
+            var assetArchive = await file.TryCreateReaderAsync();
+            if (assetArchive is null) continue;
+
+            try
+            {
+                var assetRegistry = new FAssetRegistryState(assetArchive);
+                AssetRegistry.AddRange(assetRegistry.PreallocatedAssetDataBuffers);
+                Log.Information("Loaded Asset Registry: {FilePath}", file.Path);
+            }
+            catch (Exception)
+            {
+                Log.Warning("Failed to load asset registry: {FilePath}", file.Path);
+            }
+        }
+    }
+
+    private async Task LoadRequiredAssets()
+    {
+        //if (await Provider.TryLoadObjectAsync("ValorantGame/Content/Balance/RarityData") is { } rarityData)
+        //    for (var i = 0; i < 8; i++)
+        //        RarityColors[i] = rarityData.GetByIndex<RarityCollection>(i);
+
+        //foreach (var path in MaleLobbyMontagePaths)
+        //{
+        //    MaleLobbyMontages.AddIfNotNull(await Provider.TryLoadObjectAsync<UAnimMontage>(path));
+        //}
+        
+        //foreach (var path in FemaleLobbyMontagePaths)
+        //{
+        //    FemaleLobbyMontages.AddIfNotNull(await Provider.TryLoadObjectAsync<UAnimMontage>(path));
+        //}
+    }
+}
+
+[StructFallback]
+public class RarityCollection
+{
+    public FLinearColor Color1;
+    public FLinearColor Color2;
+    public FLinearColor Color3;
+    public FLinearColor Color4;
+    public FLinearColor Color5;
+    public float Radius;
+    public float Falloff;
+    public float Brightness;
+    public float Roughness;
+
+    public RarityCollection(FStructFallback fallback)
+    {
+        Color1 = fallback.GetOrDefault<FLinearColor>(nameof(Color1));
+        Color2 = fallback.GetOrDefault<FLinearColor>(nameof(Color2));
+        Color3 = fallback.GetOrDefault<FLinearColor>(nameof(Color3));
+        Color4 = fallback.GetOrDefault<FLinearColor>(nameof(Color4));
+        Color5 = fallback.GetOrDefault<FLinearColor>(nameof(Color5));
+
+        Radius = fallback.GetOrDefault<float>(nameof(Radius));
+        Falloff = fallback.GetOrDefault<float>(nameof(Falloff));
+        Brightness = fallback.GetOrDefault<float>(nameof(Brightness));
+        Roughness = fallback.GetOrDefault<float>(nameof(Roughness));
     }
 }

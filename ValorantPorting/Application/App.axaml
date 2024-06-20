@@ -1,0 +1,17 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ext="clr-namespace:ValorantPorting.Framework.Extensions;assembly=ValorantPorting.Framework"
+             xmlns:material="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
+             xmlns:framework="clr-namespace:ValorantPorting.Framework.Application;assembly=ValorantPorting.Framework"
+             x:Class="ValorantPorting.Application.App"
+             RequestedThemeVariant="Dark">
+    <!-- TODO LIGHT THEME SUPPORT?? -->
+    <Application.Resources>
+        <ext:EnumToStringConverter x:Key="EnumToString" />
+    </Application.Resources>
+
+    <Application.Styles>
+        <framework:AppStyles/>
+        <StyleInclude Source="avares://Avalonia.Controls.ColorPicker/Themes/Fluent/Fluent.xaml" />
+    </Application.Styles>
+</Application>

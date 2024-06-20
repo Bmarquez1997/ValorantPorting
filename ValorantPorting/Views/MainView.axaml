@@ -1,0 +1,62 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:controls="clr-namespace:ValorantPorting.Controls"
+             xmlns:views="clr-namespace:ValorantPorting.Views"
+             xmlns:viewmodels="clr-namespace:ValorantPorting.ViewModels"
+             xmlns:avalonia="clr-namespace:ValorantPorting.Controls.Avalonia"
+             xmlns:ext="clr-namespace:ValorantPorting.Framework.Extensions;assembly=ValorantPorting.Framework"
+             mc:Ignorable="d" d:DesignWidth="1280" d:DesignHeight="720"
+             x:Class="ValorantPorting.Views.MainView"
+             x:DataType="viewmodels:MainViewModel">
+    <Grid>
+        <avalonia:AnimatableTabControl Margin="0 8" TabStripPlacement="Left" OnContentChanged="OnTabChanged">
+            <TabItem>
+                <TabItem.Header>
+                    <controls:MaterialIconText Text="Home    " Icon="ViewDashboard" />
+                </TabItem.Header>
+                <views:HomeView />
+            </TabItem>
+            <TabItem IsEnabled="{Binding AssetsTabReady}">
+                <TabItem.Header>
+                    <controls:MaterialIconText Text="Assets" Icon="File" />
+                </TabItem.Header>
+                <views:AssetsView />
+            </TabItem>
+            <TabItem IsEnabled="{Binding MeshTabReady}">
+                <TabItem.Header>
+                    <controls:MaterialIconText Text="Files" Icon="Folder" />
+                </TabItem.Header>
+                <views:FilesView />
+            </TabItem>
+            <TabItem>
+                <TabItem.Header>
+                    <controls:MaterialIconText Text="Export" Icon="Download" />
+                </TabItem.Header>
+                <views:ExportOptionsView />
+            </TabItem>
+            <TabItem>
+                <TabItem.Header>
+                    <controls:MaterialIconText Text="Plugin" Icon="Connection" />
+                </TabItem.Header>
+                <views:PluginView />
+            </TabItem>
+            <TabItem>
+                <TabItem.Header>
+                    <controls:MaterialIconText Text="Settings" Icon="Settings" />
+                </TabItem.Header>
+                <views:SettingsView />
+            </TabItem>
+            <TabItem>
+                <TabItem.Header>
+                    <controls:MaterialIconText Text="About" Icon="Help" />
+                </TabItem.Header>
+                <views:AboutView />
+            </TabItem>
+        </avalonia:AnimatableTabControl>
+        <Button Command="{Binding UpdateCommand}" Classes="NoBackground" Margin="{ext:Space 1, 2}" HorizontalAlignment="Left" VerticalAlignment="Bottom">
+            <controls:MaterialIconText Text="{Binding UpdateText}" Icon="Update" />
+        </Button>
+    </Grid>
+</UserControl>

@@ -1,0 +1,225 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:ext="clr-namespace:ValorantPorting.Framework.Extensions;assembly=ValorantPorting.Framework"
+             xmlns:controls="clr-namespace:ValorantPorting.Controls"
+             xmlns:viewmodels="clr-namespace:ValorantPorting.ViewModels"
+             xmlns:ValorantPorting="clr-namespace:ValorantPorting"
+             xmlns:wrapPanel="clr-namespace:ValorantPorting.Controls.WrapPanel"
+             xmlns:material="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
+             xmlns:extensions="clr-namespace:ValorantPorting.Extensions"
+             xmlns:assets="clr-namespace:ValorantPorting.Controls.Assets"
+             mc:Ignorable="d" d:DesignWidth="1280" d:DesignHeight="720"
+             x:Class="ValorantPorting.Views.AssetsView"
+             x:DataType="viewmodels:AssetsViewModel">
+    <UserControl.KeyBindings>
+        <KeyBinding Gesture="Ctrl+F" Command="{Binding FavoriteCommand}" />
+    </UserControl.KeyBindings>
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="2.5*" />
+            <ColumnDefinition Width="{ext:Space 1}" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <Grid Grid.Column="0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="{ext:Space 1}" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="{ext:Space 1}" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="{ext:Space 1}" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <Grid Grid.Row="0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="{ext:Space 1}" />
+                    <ColumnDefinition Width="2*" />
+                    <ColumnDefinition Width="{ext:Space 1}" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="{ext:Space 1}" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="{ext:Space 1}" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="{ext:Space 1}" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <Button Grid.Column="0" Click="OnRandomButtonClicked" ToolTip.Tip="Random">
+                    <material:MaterialIcon Kind="DiceMultiple" Width="20" Height="20" />
+                </Button>
+
+                <TextBox Grid.Column="2" Watermark="Search" Text="{Binding CurrentLoader.SearchFilter}" HorizontalAlignment="Stretch" TextChanged="OnSearchFilterChanged"/>
+
+                <ToggleButton Grid.Column="4" IsChecked="{Binding IsDescending}" ToolTip.Tip="Ascending or Descending">
+                    <material:MaterialIcon Kind="{Binding SortIcon}" Width="20" Height="20" />
+                </ToggleButton>
+                <ComboBox Grid.Column="6" ToolTip.Tip="Sorting" HorizontalAlignment="Stretch"
+                          ItemsSource="{ext:EnumToItemsSource {x:Type ValorantPorting:ESortType}}"
+                          SelectedItem="{Binding SortType, Converter={StaticResource EnumToString}}" />
+
+                <material:MaterialIcon Grid.Column="8" Kind="Filter" Width="20" Height="20" />
+            </Grid>
+
+            <controls:GroupBox Grid.Row="2">
+                <ListBox x:Name="AssetsListBox" ItemsSource="{Binding ActiveCollection}" SelectionMode="Multiple"
+                         AutoScrollToSelectedItem="False" Background="Transparent"
+                         SelectionChanged="OnSelectionChanged">
+                    <ListBox.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <wrapPanel:VirtualizingWrapPanel />
+                        </ItemsPanelTemplate>
+                    </ListBox.ItemsPanel>
+                </ListBox>
+            </controls:GroupBox>
+            
+            <ProgressBar Grid.Row="4" IsVisible="{Binding !CurrentLoader.FinishedLoading}" Minimum="0"
+                         Maximum="{Binding CurrentLoader.Total}" Value="{Binding CurrentLoader.Loaded}" />
+            
+            <Grid x:Name="ExpanderContainer" Grid.Row="2" Grid.RowSpan="5">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="{ext:Space 1}" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="{ext:Space 1}" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                
+                <Expander x:Name="BottomHeightTemplate" Grid.Column="0" ExpandDirection="Up" HorizontalAlignment="Stretch" VerticalAlignment="Bottom" MinHeight="36" Padding="8">
+                    <Expander.Header>
+                        <controls:ImageText Text="Cosmetics" Image="/Assets/VAL/Outfit.png" />
+                    </Expander.Header>
+                    <ItemsControl HorizontalAlignment="Stretch">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <assets:AssetTypePicker x:Name="DefaultAssetTypeButton" Type="Agent" Image="/Assets/VAL/Emote.png"/>
+                        <assets:AssetTypePicker Type="Spray" Image="/Assets/VAL/Backpack.png"/>
+                        <assets:AssetTypePicker Type="PlayerCard" Image="/Assets/VAL/Backpack.png"/>
+                        <assets:AssetTypePicker Type="GunBuddy" Image="/Assets/VAL/Backpack.png"/>
+                        <!--<assets:AssetTypePicker Type="Spray" Image="/Assets/VAL/Spray.png"/>-->
+                    </ItemsControl>
+                </Expander>
+
+                <Expander Grid.Column="2" ExpandDirection="Up" HorizontalAlignment="Stretch" VerticalAlignment="Bottom" MinHeight="36" Padding="8">
+                    <Expander.Header>
+                        <controls:ImageText Text="Weapons" Image="/Assets/VAL/Item.png" />
+                    </Expander.Header>
+                    <ItemsControl HorizontalAlignment="Stretch">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <assets:AssetTypePicker Type="Rifle" Image="/Assets/VAL/WeaponMod.png"/>
+                        <assets:AssetTypePicker Type="SMG" Image="/Assets/VAL/WeaponMod.png"/>
+                        <assets:AssetTypePicker Type="Shotgun" Image="/Assets/VAL/WeaponMod.png"/>
+                        <assets:AssetTypePicker Type="SniperRifle" Image="/Assets/VAL/WeaponMod.png"/>
+                        <assets:AssetTypePicker Type="MachineGun" Image="/Assets/VAL/WeaponMod.png"/>
+                        <assets:AssetTypePicker Type="Sidearm" Image="/Assets/VAL/WeaponMod.png"/>
+                        <assets:AssetTypePicker Type="Melee" Image="/Assets/VAL/WeaponMod.png"/>
+                    </ItemsControl>
+                </Expander>
+
+                <Expander Grid.Column="4" ExpandDirection="Up" HorizontalAlignment="Stretch" VerticalAlignment="Bottom" MinHeight="36" Padding="8">
+                    <Expander.Header>
+                        <controls:ImageText Text="Misc" Image="/Assets/VAL/Prop.png" />
+                    </Expander.Header>
+
+                    <ItemsControl HorizontalAlignment="Stretch">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+
+                        <assets:AssetTypePicker Type="Map" Image="/Assets/VAL/Prefab.png"/>
+                        <assets:AssetTypePicker Type="Bundle" Image="/Assets/VAL/Prefab.png"/>
+                    </ItemsControl>
+                </Expander>
+            </Grid>
+            
+            
+            <Grid Grid.Row="0" Grid.RowSpan="7">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="3.75*" />
+                    <ColumnDefinition Width="{ext:Space 1}" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                
+                <Expander ToolTip.Tip="Filters" Grid.Column="2" Header="{Binding FilterPreviewText}" 
+                          HorizontalAlignment="Stretch" VerticalAlignment="Top" MinHeight="0" Padding="8">
+                    <StackPanel x:Name="FilterPopupPanel">
+                        <CheckBox Content="Favorite" IsCheckedChanged="OnFilterChecked" />
+                        <CheckBox Content="Hidden Assets" IsCheckedChanged="OnFilterChecked" />
+                        <Separator Margin="{ext:Space 0, 1}" />
+                        <Button HorizontalAlignment="Stretch" Click="OnFilterClearClicked">
+                            <controls:MaterialIconText HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                       Text="Clear Filters" Icon="Delete" />
+                        </Button>
+                    </StackPanel>
+                </Expander>
+            </Grid>
+            
+            <Border Grid.Row="6" Height="{Binding ElementName=BottomHeightTemplate, Path=MinHeight}"/>
+        </Grid>
+
+        <controls:GroupBox Grid.Column="2">
+            <Grid>
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="5.5*" />
+                        <RowDefinition Height="{ext:Space 1}" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <ScrollViewer Grid.Row="0" PointerWheelChanged="OnScrollAssets">
+                        <ItemsControl ItemsSource="{Binding CurrentAssets}" />
+                    </ScrollViewer>
+
+                    <controls:GroupBox Grid.Row="2" IsVisible="{Binding !!CurrentAssets.Count}">
+                        <Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="*" />
+                                <RowDefinition Height="{ext:Space 1}" />
+                                <RowDefinition Height="1*" />
+                            </Grid.RowDefinitions>
+
+                            <Grid Grid.Row="0" ColumnDefinitions="* 3.25*">
+                                <TextBlock Grid.Column="0" Text="Export To" VerticalAlignment="Center"
+                                           Margin="3 0 0 2" />
+                                <ComboBox Grid.Column="1"
+                                          HorizontalAlignment="Stretch" VerticalAlignment="Center"
+                                          ItemsSource="{ext:EnumToItemsSource {x:Type ValorantPorting:EExportTargetType}}"
+                                          SelectedItem="{Binding ExportType, Converter={StaticResource EnumToString}}" />
+                                <!-- for visual purposes ignore lol-->
+                            </Grid>
+
+                            <Button Grid.Row="2" Command="{Binding ExportCommand}" HorizontalAlignment="Stretch"
+                                    VerticalAlignment="Stretch" Padding="0">
+                                <Grid>
+                                    <ProgressBar MinWidth="0" CornerRadius="5" Background="Transparent"
+                                                 IsVisible="{Binding IsExporting}"
+                                                 Minimum="0" Maximum="{Binding ExportChunks}"
+                                                 Value="{Binding ExportProgress}"
+                                                 HorizontalAlignment="Stretch" VerticalAlignment="Stretch" />
+                                    <controls:MaterialIconText Text="Export" Icon="Export"
+                                                               HorizontalAlignment="Center"
+                                                               VerticalAlignment="Center" />
+                                </Grid>
+                            </Button>
+                        </Grid>
+                    </controls:GroupBox>
+                </Grid>
+                <TextBlock IsVisible="{Binding !CurrentAssets.Count}" Text="No Asset Selected" Opacity="0.5"
+                           HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Grid>
+        </controls:GroupBox>
+    </Grid>
+</UserControl>

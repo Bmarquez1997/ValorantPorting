@@ -1,0 +1,191 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:controls="clr-namespace:ValorantPorting.Controls"
+             xmlns:viewmodels="clr-namespace:ValorantPorting.ViewModels"
+             xmlns:valorantPorting="clr-namespace:ValorantPorting"
+             xmlns:cue4parseConversion="clr-namespace:CUE4Parse_Conversion;assembly=CUE4Parse-Conversion"
+             xmlns:material="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
+             xmlns:avalonia="clr-namespace:ValorantPorting.Controls.Avalonia"
+             xmlns:ext="clr-namespace:ValorantPorting.Framework.Extensions;assembly=ValorantPorting.Framework"
+             mc:Ignorable="d" d:DesignWidth="1280" d:DesignHeight="720"
+             x:Class="ValorantPorting.Views.PluginView"
+             x:DataType="viewmodels:PluginViewModel">
+  <controls:GroupBox Background="#26000000">
+    <avalonia:AnimatableTabControl TabStripPlacement="Left">
+      <TabItem>
+        <TabItem.Header>
+          <controls:SvgText Text="Blender" Image="/Assets/Icons/Blender.svg" />
+        </TabItem.Header>
+
+        <StackPanel>
+          <Grid>
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="Auto"/>
+              <ColumnDefinition Width="{ext:Space 1}"/>
+              <ColumnDefinition Width="Auto"/>
+              <ColumnDefinition Width="{ext:Space 1}"/>
+              <ColumnDefinition Width="Auto"/>
+              <ColumnDefinition Width="{ext:Space 1}"/>
+              <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <Label Grid.Column="0" Content="Blender Installations" FontSize="28" FontWeight="SemiBold"
+                   Margin="8 0 0 0" HorizontalAlignment="Left" VerticalAlignment="Center" />
+            <Button Grid.Column="2" Command="{Binding Blender.Add}"
+                    Margin="0 8 0 0" VerticalAlignment="Center" Content="{material:MaterialIconExt Plus}"/>
+            <Button Grid.Column="4" Command="{Binding Blender.Remove}" CommandParameter="{Binding ElementName=BlenderInstallationListBox, Path=SelectedItem}"
+                    Margin="0 8 0 0" VerticalAlignment="Center" Content="{material:MaterialIconExt Minus}"/>
+            <Button Grid.Column="6" Command="{Binding Blender.SyncAll}" CommandParameter="False" Margin="0 8 0 0" VerticalAlignment="Center" Content="Sync"/>
+          </Grid>
+
+          <controls:GroupBox MinHeight="100" Margin="{ext:Space 1}">
+            <Grid>
+              <ListBox x:Name="BlenderInstallationListBox" ItemsSource="{Binding Blender.Installations}" Background="Transparent">
+                <ListBox.Styles>
+                  <Style Selector="ListBoxItem">
+                    <Setter Property="CornerRadius" Value="10"/>
+                  </Style>
+                </ListBox.Styles>
+                <ListBox.ItemTemplate>
+                  <DataTemplate>
+                    <Grid>
+                      <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="{ext:Space 1}"/>
+                        <ColumnDefinition Width="Auto"/>
+                      </Grid.ColumnDefinitions>
+
+                      <Svg Grid.Column="0" Path="/Assets/Icons/Blender.svg" Width="64" Height="64" />
+
+                      <Grid Grid.Column="2">
+                        <Grid.RowDefinitions>
+                          <RowDefinition Height="*"/>
+                          <RowDefinition Height="{ext:Space 1}"/>
+                          <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
+                        <Label Grid.Row="0" Content="{Binding BlenderVersion, StringFormat=Blender {0}}"
+                               FontSize="20" FontWeight="SemiBold"/>
+                        <Label Grid.Row="2" VerticalAlignment="Top" Content="{Binding PluginVersion}"/>
+                      </Grid>
+                    </Grid>
+                  </DataTemplate>
+                </ListBox.ItemTemplate>
+              </ListBox>
+              <TextBlock IsVisible="{Binding !Blender.Installations.Count}" Text="No Blender Installations Registered" Opacity="0.5"
+                         HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Grid>
+          </controls:GroupBox>
+
+          <Label Content="Options" FontSize="28" FontWeight="SemiBold" Margin="8 0 0 0"
+                 HorizontalAlignment="Left" VerticalAlignment="Center" />
+          <controls:SettingBox DisplayName="Automatically Update Plugin"
+                               Path="{Binding Blender.AutomaticUpdate, Mode=TwoWay}"
+                               Icon="Update">
+            <ToggleSwitch IsChecked="{Binding Blender.AutomaticUpdate}" />
+          </controls:SettingBox>
+
+          <Label Content="Instructions" FontSize="28" FontWeight="SemiBold" Margin="8 0 0 0"
+                 HorizontalAlignment="Left" VerticalAlignment="Center" />
+          <controls:GroupBox Margin="{ext:Space 1}">
+            <StackPanel>
+              <TextBlock Text="1) Press the plus (+) button at the top of this page." FontSize="16" Margin="{ext:Space 0, 1}"/>
+              <TextBlock Text="2) Navigate to your Blender installation and select blender.exe to register your installation." FontSize="16" Margin="{ext:Space 0, 1}"/>
+              <TextBlock Text="3) Now that your installation is registered, press the sync button." FontSize="16" Margin="{ext:Space 0, 1}"/>
+              <TextBlock Text="4) If this is your first time installing the plugin, please enable it in Blender. ( Edit -> Preferences -> Add-ons )" FontSize="16" Margin="{ext:Space 0, 1}"/>
+            </StackPanel>
+
+          </controls:GroupBox>
+
+        </StackPanel>
+      </TabItem>
+      <!--<TabItem>
+        <TabItem.Header>
+          <controls:SvgText Text="Unreal Engine" Image="/Assets/Icons/Unreal.svg" />
+        </TabItem.Header>
+
+        <StackPanel>
+          <Grid>
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="Auto"/>
+              <ColumnDefinition Width="{ext:Space 1}"/>
+              <ColumnDefinition Width="Auto"/>
+              <ColumnDefinition Width="{ext:Space 1}"/>
+              <ColumnDefinition Width="Auto"/>
+              <ColumnDefinition Width="{ext:Space 1}"/>
+              <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <Label Grid.Column="0" Content="Unreal Projects" FontSize="28" FontWeight="SemiBold"
+                   Margin="8 0 0 0" HorizontalAlignment="Left" VerticalAlignment="Center" />
+            <Button Grid.Column="2" Command="{Binding Unreal.Add}"
+                    Margin="0 8 0 0" VerticalAlignment="Center" Content="{material:MaterialIconExt Plus}"/>
+            <Button Grid.Column="4" Command="{Binding Unreal.Remove}" CommandParameter="{Binding ElementName=UnrealProjectListBox, Path=SelectedItem}"
+                    Margin="0 8 0 0" VerticalAlignment="Center" Content="{material:MaterialIconExt Minus}"/>
+            <Button Grid.Column="6" Command="{Binding Unreal.SyncAll}" CommandParameter="False" Margin="0 8 0 0" VerticalAlignment="Center" Content="Sync"/>
+          </Grid>
+
+          <controls:GroupBox MinHeight="100" Margin="{ext:Space 1}">
+            <Grid>
+              <ListBox x:Name="UnrealProjectListBox" ItemsSource="{Binding Unreal.Projects}" Background="Transparent">
+                <ListBox.Styles>
+                  <Style Selector="ListBoxItem">
+                    <Setter Property="CornerRadius" Value="10"/>
+                  </Style>
+                </ListBox.Styles>
+                <ListBox.ItemTemplate>
+                  <DataTemplate>
+                    <Grid>
+                      <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="{ext:Space 1}"/>
+                        <ColumnDefinition Width="Auto"/>
+                      </Grid.ColumnDefinitions>
+
+                      <Svg Grid.Column="0" Path="/Assets/Icons/Unreal.svg" Width="64" Height="64" />
+
+                      <Grid Grid.Column="2">
+                        <Grid.RowDefinitions>
+                          <RowDefinition Height="*"/>
+                          <RowDefinition Height="{ext:Space 1}"/>
+                          <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
+                        <Label Grid.Row="0" Content="{Binding UnrealVersion, StringFormat=Unreal Engine {0}}"
+                               FontSize="20" FontWeight="SemiBold"/>
+                        <Label Grid.Row="2" VerticalAlignment="Top" Content="{Binding PluginVersion}"/>
+                      </Grid>
+                    </Grid>
+                  </DataTemplate>
+                </ListBox.ItemTemplate>
+              </ListBox>
+              <TextBlock IsVisible="{Binding !Unreal.Projects.Count}" Text="No Unreal Projects Registered" Opacity="0.5"
+                         HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Grid>
+          </controls:GroupBox>
+
+          <Label Content="Options" FontSize="28" FontWeight="SemiBold" Margin="8 0 0 0"
+                 HorizontalAlignment="Left" VerticalAlignment="Center" />
+          <controls:SettingBox DisplayName="Automatically Update Plugin"
+                               Path="{Binding Unreal.AutomaticUpdate, Mode=TwoWay}"
+                               Icon="Update">
+            <ToggleSwitch IsChecked="{Binding Unreal.AutomaticUpdate}" />
+          </controls:SettingBox>
+
+          <Label Content="Instructions" FontSize="28" FontWeight="SemiBold" Margin="8 0 0 0"
+                 HorizontalAlignment="Left" VerticalAlignment="Center" />
+          <controls:GroupBox Margin="{ext:Space 1}">
+            <StackPanel>
+              <TextBlock Text="1) Press the plus (+) button at the top of this page." FontSize="16" Margin="{ext:Space 0, 1}"/>
+              <TextBlock Text="2) Navigate to your Unreal Project and select the .uproject file to register your project." FontSize="16" Margin="{ext:Space 0, 1}"/>
+              <TextBlock Text="3) Now that your project is registered, press the sync button." FontSize="16" Margin="{ext:Space 0, 1}"/>
+              <TextBlock Text="4) If this is your first time installing the plugin, you might need to recompile it manually when starting Unreal Engine." FontSize="16" Margin="{ext:Space 0, 1}"/>
+            </StackPanel>
+
+          </controls:GroupBox>
+
+        </StackPanel>
+      </TabItem>-->
+    </avalonia:AnimatableTabControl>
+  </controls:GroupBox>
+</UserControl>

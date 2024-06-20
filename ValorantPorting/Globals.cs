@@ -1,28 +1,23 @@
-﻿global using static ValorantPorting.Services.ApplicationService;
-global using Serilog;
-using System.Reflection;
+global using static ValorantPorting.Application.App;
+global using static ValorantPorting.Framework.Application.AppBase;
 using CUE4Parse.UE4.Objects.Core.Misc;
+using CUE4Parse.UE4.Versions;
+using ValorantPorting.Framework.ViewModels.Endpoints.Models;
 
 namespace ValorantPorting;
 
 public static class Globals
 {
-    public const string DISCORD_URL = "https://discord.gg/fortniteporting";
+    public static readonly VPVersion Version = new(2, 0, 0);
+    public static readonly string VersionString = Version.ToString();
+
+    public const string DISCORD_URL = "https://discord.gg/DZ5YFXdBA6";
     public const string GITHUB_URL = "https://github.com/KaiserM21/ValorantPorting";
-
-    public const int BLENDER_PORT = 24283;
-    public const int UNREAL_PORT = 24284;
-    public const int BUFFER_SIZE = 4096;
-
-    public const string UDPClient_Ping = "Ping";
-
-    public const string WHITE = "#e1e9f2";
-    public const string BLUE = "#4b8ad1";
-    public const string RED = "#d14b68";
-    public const string YELLOW = "#d1c84b";
-    public const string GREEN = "#03fc5e";
-    public static readonly string APP_VERSION = Assembly.GetExecutingAssembly().GetName().Version?.ToString();
+    public const string KOFI_URL = "https://ko-fi.com/halfuwu";
+    public const string WIKI_URL = "https://github.com/KaiserM21/ValorantPorting/wiki";
 
     public static readonly FGuid ZERO_GUID = new();
-    public static readonly string ZERO_CHAR = "0x0000000000000000000000000000000000000000000000000000000000000000";
+    public const string ZERO_CHAR = "0x0000000000000000000000000000000000000000000000000000000000000000";
+    public const string KEY_STRING = "0x4BE71AF2459CF83899EC9DC2CB60E22AC4B3047E0211034BBABE9D174C069DD6";
+    public const EGame LatestGameVersion = EGame.GAME_Valorant;
 }

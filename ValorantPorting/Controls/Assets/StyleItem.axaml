@@ -1,0 +1,37 @@
+﻿<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:controls="clr-namespace:ValorantPorting.Controls"
+             xmlns:assets="clr-namespace:ValorantPorting.Controls.Assets"
+             xmlns:ext="clr-namespace:ValorantPorting.Framework.Extensions;assembly=ValorantPorting.Framework"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="ValorantPorting.Controls.Assets.StyleItem"
+             x:DataType="assets:StyleItem">
+    <controls:GroupBox>
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*" />
+                <RowDefinition Height="{ext:Space 1}" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+            <TextBlock Grid.Row="0"
+                       Text="{Binding ChannelName, RelativeSource={RelativeSource AncestorType=assets:StyleItem}}"
+                       HorizontalAlignment="Center" FontSize="16" />
+            <ListBox Grid.Row="2" x:Name="StylesListBox"
+                     ItemsSource="{Binding Styles, RelativeSource={RelativeSource AncestorType=assets:StyleItem}}"
+                     HorizontalAlignment="Center" Background="Transparent">
+                <ListBox.Styles>
+                    <Style Selector="ListBoxItem">
+                        <Setter Property="CornerRadius" Value="10"/>
+                    </Style>
+                </ListBox.Styles>
+                <ListBox.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <WrapPanel VerticalAlignment="Top" HorizontalAlignment="Left" />
+                    </ItemsPanelTemplate>
+                </ListBox.ItemsPanel>
+            </ListBox>
+        </Grid>
+    </controls:GroupBox>
+</UserControl>

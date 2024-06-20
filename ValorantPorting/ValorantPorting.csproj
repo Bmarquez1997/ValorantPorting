@@ -1,48 +1,57 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <LangVersion>latest</LangVersion>
+        <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+        <OutputType>WinExe</OutputType>
+        <ApplicationIcon>../ValorantPorting.Framework/Assets/Logo/ValorantPorting.ico</ApplicationIcon>
+    </PropertyGroup>
 
     <PropertyGroup>
-        <OutputType>WinExe</OutputType>
-        <TargetFramework>net6.0-windows</TargetFramework>
-        <Nullable>enable</Nullable>
-        <UseWPF>true</UseWPF>
-        <ApplicationIcon>ValorantPorting.ico</ApplicationIcon>
+        <ApplicationManifest>app.manifest</ApplicationManifest>
+        <AssemblyName>ValorantPorting</AssemblyName>
         <RootNamespace>ValorantPorting</RootNamespace>
-        <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="AdonisUI" Version="1.17.1"/>
-        <PackageReference Include="AdonisUI.ClassicTheme" Version="1.17.1"/>
-        <PackageReference Include="CommunityToolkit.Mvvm" Version="8.0.0"/>
-        <PackageReference Include="DiscordRichPresence" Version="1.0.175"/>
-        <PackageReference Include="Newtonsoft.Json" Version="13.0.3"/>
-        <PackageReference Include="Ookii.Dialogs.Wpf" Version="5.0.1"/>
-        <PackageReference Include="RestSharp" Version="108.0.3-alpha.0.5"/>
-        <PackageReference Include="RestSharp.Serializers.NewtonsoftJson" Version="108.0.3-alpha.0.5"/>
-        <PackageReference Include="YamlDotNet.NetCore" Version="1.0.0"/>
+        <AvaloniaResource Include="Assets\**" />
+        <AvaloniaResource Include="Plugins\**" />
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\CUE4Parse\CUE4Parse-Conversion\CUE4Parse-Conversion.csproj"/>
-        <ProjectReference Include="..\CUE4Parse\CUE4Parse\CUE4Parse.csproj"/>
+        <PackageReference Include="AsyncImageLoader.Avalonia" Version="3.2.1" />
+        <PackageReference Include="Avalonia" Version="11.0.7" />
+        <PackageReference Include="Avalonia.Controls.ColorPicker" Version="11.0.7" />
+        <PackageReference Include="Avalonia.Svg.Skia" Version="11.0.0.10" />
+        <PackageReference Include="Avalonia.Themes.Fluent" Version="11.0.7" />
+        <PackageReference Include="Avalonia.Fonts.Inter" Version="11.0.7" />
+        <PackageReference Include="Avalonia.ReactiveUI" Version="11.0.7" />
+        <PackageReference Include="Avalonia.Desktop" Version="11.0.7" />
+        <PackageReference Condition="'$(Configuration)' == 'Debug'" Include="Avalonia.Diagnostics" Version="11.0.7" />
+        <PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.2" />
+        <PackageReference Include="CSCore" Version="1.2.1.2" />
+        <PackageReference Include="CSCore.Ogg" Version="1.0.0" />
+        <PackageReference Include="DiscordRichPresence" Version="1.2.1.24" />
+        <PackageReference Include="Material.Icons.Avalonia" Version="2.0.1" />
+        <PackageReference Include="RestSharp" Version="110.2.1-alpha.0.11" />
+        <PackageReference Include="RestSharp.Serializers.NewtonsoftJson" Version="110.2.1-alpha.0.11" />
+        <PackageReference Include="Serilog.Sinks.File" Version="5.0.1-dev-00947" />
+        <PackageReference Include="SixLabors.ImageSharp" Version="3.1.3" />
+        <PackageReference Include="z440.atl.core" Version="5.14.0" />
     </ItemGroup>
 
     <ItemGroup>
-        <Resource Include="Resources\Backpack.png"/>
-        <Resource Include="Resources\Dance.png"/>
-        <Resource Include="Resources\Glider.png"/>
-        <Resource Include="Resources\Mesh.png"/>
-        <Resource Include="Resources\Outfit.png"/>
-        <Resource Include="Resources\Pickaxe.png"/>
-        <Resource Include="Resources\Props.png"/>
-        <Resource Include="Resources\Vehicle.png"/>
-        <Resource Include="Resources\Weapon.png"/>
-        <Resource Include="Resources\Unreal.png"/>
-        <Resource Include="Resources\Blender.png"/>
+      <ProjectReference Include="..\Dependencies\CUE4Parse\CUE4Parse-Conversion\CUE4Parse-Conversion.csproj" />
+      <ProjectReference Include="..\Dependencies\CUE4Parse\CUE4Parse\CUE4Parse.csproj" />
+      <ProjectReference Include="..\Dependencies\EpicManifestParser\src\EpicManifestParser\EpicManifestParser.csproj" />
+      <ProjectReference Include="..\ValorantPorting.Framework\ValorantPorting.Framework.csproj" />
     </ItemGroup>
 
     <ItemGroup>
-        <Compile Remove="ViewModels\BundleDownloaderViewModel.cs"/>
+      <Compile Update="Windows\TexturePreviewWindow.axaml.cs">
+        <DependentUpon>TexturePreviewWindow.axaml</DependentUpon>
+        <SubType>Code</SubType>
+      </Compile>
     </ItemGroup>
-
 </Project>

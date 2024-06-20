@@ -1,44 +1,64 @@
-﻿using System;
-using System.Windows;
-using AdonisUI.Controls;
+using System;
+using System.Collections.Generic;
+using Avalonia.Controls;
 using CommunityToolkit.Mvvm.ComponentModel;
-using ValorantPorting.AppUtils;
-using MessageBox = AdonisUI.Controls.MessageBox;
-using MessageBoxImage = AdonisUI.Controls.MessageBoxImage;
+using ValorantPorting.Application;
+using ValorantPorting.Extensions;
+using ValorantPorting.Framework;
+using ValorantPorting.Framework.Application;
+using ValorantPorting.Framework.Controls;
+using ValorantPorting.Framework.ViewModels;
+using ValorantPorting.Views;
 
 namespace ValorantPorting.ViewModels;
 
-public class ApplicationViewModel : ObservableObject
+public partial class ApplicationViewModel : ViewModelBase
 {
-    public AssetHandlerViewModel? AssetHandlerVM;
-    public BlenderViewModel BlenderVM;
-    public CUE4ParseViewModel CUE4ParseVM;
-    public MainViewModel MainVM;
-    public SettingsViewModel SettingsVM;
-    public StartupViewModel StartupVM;
+    [ObservableProperty] private ThemedViewModelBase theme;
+    [ObservableProperty] private string versionString = $"v{Globals.VersionString}";
 
-    public void RestartWithMessage(string caption, string message)
+    [ObservableProperty] private UserControl? currentView;
+
+    public ApplicationViewModel()
     {
-        var messageBox = new MessageBoxModel
+        Theme = ThemeVM;
+        ThemeVM.UseMicaBackground = AppSettings.Current.UseMica;
+        ThemeVM.BackgroundColor = AppSettings.Current.BackgroundColor;
+        ColorExtensions.SetSystemAccentColor(AppSettings.Current.AccentColor);
+        
+        switch (AppSettings.Current.LoadingType)
         {
-            Caption = caption,
-            Icon = MessageBoxImage.Exclamation,
-            Text = message,
-            Buttons = new[] { MessageBoxButtons.Ok() }
-        };
+            case ELoadingType.Live:
+            case ELoadingType.Local when AppSettings.Current.HasValidLocalData:
+                SetView<MainView>();
+                break;
+            default:
+                SetView<WelcomeView>();
+                break;
+        }
+    }
 
-        MessageBox.Show(messageBox);
-        Restart();
+    public void SetView<T>() where T : UserControl, new()
+    {
+        CurrentView = new T();
+    }
+
+    public void RestartWithMessage(string caption, string message, bool mandatory = true)
+    {
+        var restartButton = new MessageWindowButton("Restart", _ => Restart());
+        var waitButton = new MessageWindowButton("Wait", window => window.Close());
+        var buttons = mandatory ? new List<MessageWindowButton> { restartButton } : [ restartButton, waitButton ];
+        MessageWindow.Show(caption, message, buttons);
     }
 
     public void Restart()
     {
-        AppHelper.Launch(AppDomain.CurrentDomain.FriendlyName, false);
-        Application.Current.Shutdown();
+        Launch(AppDomain.CurrentDomain.FriendlyName, false);
+        Shutdown();
     }
 
-    public void Quit()
+    public void Shutdown()
     {
-        Application.Current.Shutdown();
+        AppBase.Application.Shutdown();
     }
 }

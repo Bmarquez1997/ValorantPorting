@@ -1,0 +1,36 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:assets="clr-namespace:ValorantPorting.Controls.Assets"
+             xmlns:material="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="ValorantPorting.Controls.Assets.AssetItem"
+             x:DataType="assets:AssetItem">
+    <StackPanel Width="{Binding DisplayWidth, RelativeSource={RelativeSource AncestorType=assets:AssetItem}}" 
+                ToolTip.Tip="{Binding ID, RelativeSource={RelativeSource AncestorType=assets:AssetItem}}">
+        <StackPanel.ContextMenu>
+            <ContextMenu>
+                <MenuItem Header="Favorite" Icon="{material:MaterialIconExt Heart}" Command="{Binding Favorite}" />
+                <MenuItem Header="Copy to Clipboard" Icon="{material:MaterialIconExt Clipboard}">
+                    <MenuItem Header="Path" Command="{Binding CopyPath}" />
+                    <MenuItem Header="ID" Command="{Binding CopyID}" />
+                </MenuItem>
+            </ContextMenu>
+        </StackPanel.ContextMenu>
+        <Border Width="{Binding DisplayWidth, RelativeSource={RelativeSource AncestorType=assets:AssetItem}}" 
+                Height="{Binding DisplayHeight, RelativeSource={RelativeSource AncestorType=assets:AssetItem}}" 
+                CornerRadius="5" BorderThickness="2" BorderBrush="#13FFFFFF">
+            <Border.Background>
+                <ImageBrush Stretch="Uniform"
+                            Source="{Binding PreviewImage, RelativeSource={RelativeSource AncestorType=assets:AssetItem}}" />
+            </Border.Background>
+            <Image IsVisible="{Binding IsFavorite, RelativeSource={RelativeSource AncestorType=assets:AssetItem}}"
+                   Source="/Assets/FN/Favorite.png" Width="24" Height="24" HorizontalAlignment="Right"
+                   VerticalAlignment="Top" />
+        </Border>
+        <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="12"
+                   TextTrimming="CharacterEllipsis"
+                   Text="{Binding DisplayName, RelativeSource={RelativeSource AncestorType=assets:AssetItem}}" />
+    </StackPanel>
+</UserControl>

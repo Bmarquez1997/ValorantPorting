@@ -1,153 +1,102 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
+using System;
 using System.Diagnostics;
-using System.Linq;
+using System.IO;
 using System.Threading.Tasks;
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Input;
-using System.Windows.Media;
+using Avalonia.Controls;
 using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
-using CUE4Parse.UE4.Assets.Exports;
-using ValorantPorting.AppUtils;
-using ValorantPorting.Export;
-using ValorantPorting.Export.Blender;
+using ValorantPorting.Application;
+using ValorantPorting.Framework;
+using ValorantPorting.Framework.Controls;
+using ValorantPorting.Framework.Services;
+using ValorantPorting.Framework.ViewModels.Endpoints.Models;
 using ValorantPorting.Services;
-using ValorantPorting.Views;
-using ValorantPorting.Views.Controls;
-using StyleSelector = ValorantPorting.Views.Controls.StyleSelector;
+using Serilog;
 
 namespace ValorantPorting.ViewModels;
 
-public partial class MainViewModel : ObservableObject
+public partial class MainViewModel : ViewModelBase
 {
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(StyleImage))]
-    [NotifyPropertyChangedFor(nameof(StyleVisibility))]
-    private IExportableAsset? currentAsset;
+    [ObservableProperty] private UserControl activeTab;
+    [ObservableProperty] private bool assetsTabReady;
+    [ObservableProperty] private bool meshTabReady;
+    [ObservableProperty] private bool radioTabReady;
+    [ObservableProperty] private string updateText;
+    [ObservableProperty] private ReleaseResponse? availableUpdate;
 
-    public EAssetType CurrentAssetType;
-
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(StyleImage))]
-    [NotifyPropertyChangedFor(nameof(StyleVisibility))]
-    private List<IExportableAsset> extendedAssets = new();
-
-    
-    [ObservableProperty] [NotifyPropertyChangedFor(nameof(LoadingVisibility))]
-    private bool isReady;
-    
-    [ObservableProperty] private ObservableCollection<AssetSelectorItem> outfits = new();
-    [ObservableProperty] private ObservableCollection<StyleSelector> styles = new();
-    [ObservableProperty] private ObservableCollection<AssetSelectorItem> weapons = new();
-    [ObservableProperty] private ObservableCollection<AssetSelectorItem> gunbuddies = new();
-
-    public ImageSource StyleImage => currentAsset?.FullSource;
-    public Visibility StyleVisibility => currentAsset is null ? Visibility.Collapsed : Visibility.Visible;
-
-    public Visibility LoadingVisibility => IsReady ? Visibility.Collapsed : Visibility.Visible;
-
-    public async Task Initialize()
+    public override async Task Initialize()
     {
-        await Task.Run(async () =>
+        await RefreshUpdateInfo();
+        if (AvailableUpdate is not null && !AvailableUpdate.ProperVersion.Equals(Globals.Version))
         {
-            var loadTime = new Stopwatch();
-            loadTime.Start();
+            UpdateText = $"Update to\nv{AvailableUpdate.Version}";
 
-            AppVM.CUE4ParseVM =
-                new CUE4ParseViewModel(AppSettings.Current.ArchivePath, AppSettings.Current.InstallType);
-            await AppVM.CUE4ParseVM.Initialize();
-            loadTime.Stop();
-
-            AppLog.Information($"Finished loading game files in {Math.Round(loadTime.Elapsed.TotalSeconds, 3)}s");
-            IsReady = true;
-
-            AppVM.AssetHandlerVM = new AssetHandlerViewModel();
-            await AppVM.AssetHandlerVM.Initialize();
-        });
-    }
-
-    public UObject GetSelectedStyles()
-    {
-        var ObjectStyle = Styles.Select(style =>
-            ((StyleSelectorItem)style.Options.Items[style.Options.SelectedIndex]).ObjectData).ToList();
-        if (ObjectStyle.Count > 0) return ObjectStyle[0];
-        return null;
-    }
-
-    [RelayCommand]
-    public void Menu(string parameter)
-    {
-        switch (parameter)
+            if (DateTime.Now >= AppSettings.Current.LastUpdateAskTime.AddDays(0.5) && !AvailableUpdate.ProperVersion.Equals(AppSettings.Current.LastKnownUpdateVersion))
+            {
+                AppSettings.Current.LastKnownUpdateVersion = AvailableUpdate.ProperVersion;
+                AppSettings.Current.LastUpdateAskTime = DateTime.Now;
+                await UpdatePrompt();
+            }
+        }
+        else
         {
-            case "Open_Assets":
-                AppHelper.Launch(App.AssetsFolder.FullName);
-                break;
-            case "Open_Data":
-                AppHelper.Launch(App.DataFolder.FullName);
-                break;
-            case "Open_Exports":
-                AppHelper.Launch(App.ExportsFolder.FullName);
-                break;
-            case "File_Restart":
-                AppVM.Restart();
-                break;
-            case "File_Quit":
-                AppVM.Quit();
-                break;
-            case "Settings_Options":
-                AppHelper.OpenWindow<SettingsView>();
-                break;
-            case "Settings_Startup":
-                AppHelper.OpenWindow<StartupView>();
-                break;
-            case "Tools_Update":
-                // TODO
-                break;
-            case "Help_Discord":
-                AppHelper.Launch(Globals.DISCORD_URL);
-                break;
-            case "Help_GitHub":
-                AppHelper.Launch(Globals.GITHUB_URL);
-                break;
-            case "Help_About":
-                // TODO
-                break;
-            case "Settings_Blender":
-                AppHelper.OpenWindow<BlenderView>();
-                break;
+            UpdateText = "Check for\nUpdates";
         }
     }
 
-    [RelayCommand]
-    public async Task ExportBlender()
+    public async Task UpdateCommand()
     {
-        var loadTimez = new Stopwatch();
-        loadTimez.Start();
-        var data = await ExportData.Create(CurrentAsset.Asset, CurrentAssetType, GetSelectedStyles());
-        data.Name = currentAsset.DisplayName;
-        var reorient = CurrentAssetType != EAssetType.Weapon;
-        BlenderService.Send(data, new BlenderExportSettings
-        {
-            ReorientBones = reorient
-        });
-        loadTimez.Stop();
-        AppLog.Information(
-            $"Finished exporting {data.Name} to BLENDER in {Math.Round(loadTimez.Elapsed.TotalSeconds, 3)}s");
+        await RefreshUpdateInfo();
+        await UpdatePrompt();
     }
 
-    [RelayCommand]
-    public async Task ExportUnreal()
+    public async Task RefreshUpdateInfo()
     {
-        var loadTimez = new Stopwatch();
-        loadTimez.Start();
-        var data = await ExportData.Create(CurrentAsset.Asset, CurrentAssetType, GetSelectedStyles());
-        data.Name = currentAsset.DisplayName;
-        UnrealService.Send(data);
-        loadTimez.Stop();
-        AppLog.Information(
-            $"Finished exporting {data.Name} to UNREAL in {Math.Round(loadTimez.Elapsed.TotalSeconds, 3)}s");
+        // TODO AvailableUpdate = await EndpointsVM.ValorantPorting.GetReleaseAsync();
+        AvailableUpdate = null;
+    }
+
+    public async Task UpdatePrompt()
+    {
+        if (AvailableUpdate is not null && !AvailableUpdate.ProperVersion.Equals(Globals.Version))
+        {
+            MessageWindow.Show(new MessageWindowModel
+            {
+                Title = "An Update is Available",
+                Text = $"ValorantPorting v{AvailableUpdate.Version} is available. Would you like to update now?",
+                Buttons = [
+                    new MessageWindowButton("Yes", window =>
+                    {
+                        window.Close();
+                        Update();
+                    }),
+                    new MessageWindowButton("No", window => window.Close())
+                ]
+            });
+        }
+        else
+        {
+            MessageWindow.Show(new MessageWindowModel
+            {
+                Title = "No Update Available",
+                Text = "ValorantPorting is up-to-date."
+            });
+        }
+    }
+
+    private void Update()
+    {
+        AppSettings.Save();
+        TaskService.Run(() =>
+        {
+            EndpointsVM.DownloadFile(AvailableUpdate.DownloadUrl, "ValorantPorting.temp.exe");
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = DependencyService.UpdaterFile.FullName,
+                CreateNoWindow = true,
+                UseShellExecute = false,
+                WorkingDirectory = AppDomain.CurrentDomain.BaseDirectory
+            });
+            Shutdown();
+        });
     }
 }

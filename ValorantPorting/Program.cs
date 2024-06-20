@@ -1,0 +1,47 @@
+﻿using System;
+using Avalonia;
+using Avalonia.ReactiveUI;
+using ValorantPorting.Application;
+using ValorantPorting.Framework.Application;
+using Serilog;
+
+namespace ValorantPorting;
+
+file class Program
+{
+    [STAThread]
+    public static void Main(string[] args)
+    {
+        try
+        {
+            BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
+        }
+        catch (Exception e)
+        {
+            Log.Fatal(e.ToString());
+            Log.CloseAndFlush();
+        }
+    }
+
+    private static AppBuilder BuildAvaloniaApp()
+    {
+        return AppBuilder.Configure<App>()
+            .UsePlatformDetect()
+            .WithInterFont()
+            .LogToTrace()
+            .UseReactiveUI()
+            .With(new Win32PlatformOptions
+            {
+                CompositionMode = new[] { Win32CompositionMode.WinUIComposition },
+                OverlayPopups = true
+            })
+            .With(new X11PlatformOptions
+            {
+                OverlayPopups = true
+            })
+            .With(new AvaloniaNativePlatformOptions
+            {
+                OverlayPopups = true
+            });
+    }
+}

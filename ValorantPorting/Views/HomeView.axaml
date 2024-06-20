@@ -1,0 +1,105 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:viewmodels="clr-namespace:ValorantPorting.ViewModels"
+             xmlns:controls="clr-namespace:ValorantPorting.Controls"
+             xmlns:ext="clr-namespace:ValorantPorting.Framework.Extensions;assembly=ValorantPorting.Framework"
+             xmlns:asyncImageLoader="clr-namespace:AsyncImageLoader;assembly=AsyncImageLoader.Avalonia"
+             xmlns:home="clr-namespace:ValorantPorting.Controls.Home"
+             mc:Ignorable="d" d:DesignWidth="1100" d:DesignHeight="720"
+             x:Class="ValorantPorting.Views.HomeView"
+             x:DataType="viewmodels:HomeViewModel">
+    <controls:GroupBox Background="#26000000">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="180" />
+                <RowDefinition Height="{ext:Space 1}" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="{ext:Space 1}" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <Grid Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3">
+                <Border RenderOptions.BitmapInterpolationMode="HighQuality" CornerRadius="5">
+                    <Border.Background>
+                        <ImageBrush Source="{Binding SplashArtSource}" Stretch="UniformToFill" />
+                    </Border.Background>
+                </Border>
+                <Border Background="Black" Opacity="0.35" CornerRadius="5" />
+                <TextBlock Text="{Binding GreetingText}" FontSize="56" FontWeight="SemiBold" HorizontalAlignment="Center"
+                           VerticalAlignment="Center" />
+                <TextBlock Margin="0 80 0 0" Text="{Binding LoadingText}" HorizontalAlignment="Center"
+                           VerticalAlignment="Center" />
+            </Grid>
+
+            <StackPanel Grid.Row="2" Grid.Column="0" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                <StackPanel.Styles>
+                    <Style Selector="controls|GroupBox">
+                        <Setter Property="Margin" Value="0 0 0 8" />
+                    </Style>
+                </StackPanel.Styles>
+                <controls:GroupBox>
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="{ext:Space 1}" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Grid.Row="0" FontSize="28" FontWeight="SemiBold" Text="Links"
+                                   TextWrapping="Wrap" />
+                        <ItemsControl Grid.Row="2">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <WrapPanel/>
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <Button Command="{Binding OpenDiscordCommand}" Margin="{ext:Space 0.25}">
+                                <StackPanel Orientation="Horizontal">
+                                    <Svg Path="/Assets/Icons/Discord.svg" Width="16" Height="16" Margin="0 0 8 0"
+                                         Stretch="UniformToFill" HorizontalAlignment="Center"
+                                         VerticalAlignment="Center" />
+                                    <TextBlock Text="Discord Server" />
+                                </StackPanel>
+                            </Button>
+                            <Button Command="{Binding OpenKoFi}" Margin="{ext:Space 0.25}">
+                                <StackPanel Orientation="Horizontal">
+                                    <Svg Path="/Assets/Icons/KoFi.svg" Width="16" Height="16" Margin="0 0 8 0"
+                                         Stretch="UniformToFill" HorizontalAlignment="Center"
+                                         VerticalAlignment="Center" />
+                                    <TextBlock Text="Support the Project" />
+                                </StackPanel>
+                            </Button>
+                            <Button Command="{Binding OpenWikiCommand}" Margin="{ext:Space 0.25}">
+                                <controls:MaterialIconText Text="Wiki" Icon="QuestionMark" />
+                            </Button>
+                            
+                        </ItemsControl>
+                    </Grid>
+                </controls:GroupBox>
+                <Grid>
+                    <TransitioningContentControl Content="{Binding CurrentFeaturedArt}">
+                        <TransitioningContentControl.PageTransition>
+                            <PageSlide Duration="0.5" Orientation="Horizontal" SlideInEasing="CubicEaseOut"
+                                       SlideOutEasing="CubicEaseOut" />
+                        </TransitioningContentControl.PageTransition>
+                    </TransitioningContentControl>
+                </Grid>
+            </StackPanel>
+            
+            <ScrollViewer Grid.Row="2" Grid.Column="2" VerticalScrollBarVisibility="Hidden">
+                <ItemsControl ItemsSource="{Binding Changelogs}">
+                    <ItemsControl.Styles>
+                        <Style Selector="home|ChangelogItem">
+                            <Setter Property="Margin" Value="0 0 0 8" />
+                        </Style>
+                    </ItemsControl.Styles>
+                </ItemsControl>
+            </ScrollViewer>
+        </Grid>
+    </controls:GroupBox>
+</UserControl>

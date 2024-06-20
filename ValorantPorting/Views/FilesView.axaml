@@ -1,0 +1,165 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:controls="clr-namespace:ValorantPorting.Controls"
+             xmlns:viewmodels="clr-namespace:ValorantPorting.ViewModels"
+             xmlns:ext="clr-namespace:ValorantPorting.Framework.Extensions;assembly=ValorantPorting.Framework"
+             xmlns:extensions="clr-namespace:ValorantPorting.Extensions"
+             xmlns:material="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
+             xmlns:valorantPorting="clr-namespace:ValorantPorting"
+             mc:Ignorable="d" d:DesignWidth="1280" d:DesignHeight="720"
+             x:Class="ValorantPorting.Views.FilesView"
+             x:DataType="viewmodels:FilesViewModel">
+    <controls:GroupBox Background="#26000000">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="{ext:Space 1}" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="{ext:Space 1}" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="2*" />
+                <ColumnDefinition Width="{ext:Space 1}" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <Grid Grid.Row="0" Grid.Column="0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="2*" />
+                    <ColumnDefinition Width="{ext:Space 1}" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="{ext:Space 1}" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBox x:Name="SearchTextBox" Grid.Column="0" Text="{Binding SearchFilter}" Watermark="Search" HorizontalAlignment="Stretch" TextChanged="OnSearchTextChanged"/>
+                <Button Grid.Column="2" Content="Scan for Files" Command="{Binding ScanContentCommand}" />
+                <TextBlock Grid.Column="4" HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <TextBlock.Text>
+                        <MultiBinding StringFormat="{}{0:N2}%">
+                            <Binding Path="ScanPercentage" />
+                        </MultiBinding>
+                    </TextBlock.Text>
+                </TextBlock>
+            </Grid>
+
+            <controls:GroupBox Grid.Row="2" Grid.RowSpan="3" Grid.Column="0">
+                <Grid RowDefinitions="Auto *">
+                    <Label Grid.Row="0" Content="Flat View" FontSize="14" FontWeight="SemiBold" Margin="0 0 0 0"
+                           HorizontalAlignment="Left" VerticalAlignment="Center" />
+                    <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+                        <ListBox Background="Transparent" SelectionMode="Multiple" AutoScrollToSelectedItem="True"
+                                 SelectedItem="{Binding SelectedFlatViewItem}" ItemsSource="{Binding AssetItemsTarget}"
+                                 HorizontalAlignment="Stretch" SelectionChanged="OnFlatViewSelectionChanged"
+                                 DoubleTapped="OnFlatViewDoubleTapped">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Path}" Padding="0" Margin="0" />
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                            <ListBox.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <VirtualizingStackPanel/>
+                                </ItemsPanelTemplate>
+                            </ListBox.ItemsPanel>
+                        </ListBox>
+                    </ScrollViewer>
+                </Grid>
+            </controls:GroupBox>
+            <TextBlock Grid.Row="2" Grid.RowSpan="3" Grid.Column="0" Text="No Files Loaded"
+                       IsVisible="{Binding !AssetItems.Count}"
+                       Opacity="0.5" HorizontalAlignment="Center" VerticalAlignment="Center" />
+
+            <GridSplitter Grid.Row="0" Grid.RowSpan="5" Grid.Column="1" Background="Transparent"
+                          ResizeDirection="Columns" />
+
+            <controls:GroupBox Grid.Row="0" Grid.RowSpan="3" Grid.Column="2">
+                <Grid RowDefinitions="Auto *">
+                    <Label Grid.Row="0" Content="Tree View" FontSize="14" FontWeight="SemiBold" Margin="0 0 0 0"
+                           HorizontalAlignment="Left" VerticalAlignment="Center" />
+                    <TreeView Grid.Row="1" AutoScrollToSelectedItem="True" SelectedItem="{Binding SelectedTreeItem}"
+                              ItemsSource="{Binding TreeItems}" HorizontalAlignment="Stretch" Tapped="OnTreeViewTapped">
+                        <TreeView.ItemContainerTheme>
+                            <ControlTheme TargetType="TreeViewItem" BasedOn="{StaticResource {x:Type TreeViewItem}}">
+                                <Setter Property="IsExpanded" Value="{ReflectionBinding Expanded}" />
+                            </ControlTheme>
+                        </TreeView.ItemContainerTheme>
+                        <TreeView.ItemTemplate>
+                            <TreeDataTemplate ItemsSource="{Binding Children}">
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
+                                    <material:MaterialIcon Width="16" Height="16" Margin="0 0 8 0"
+                                                           Classes.File="{Binding IsFile}"
+                                                           Classes.Folder="{Binding IsFolder}">
+                                        <material:MaterialIcon.Styles>
+                                            <Style Selector="material|MaterialIcon.File">
+                                                <Style.Setters>
+                                                    <Setter Property="Kind" Value="File" />
+                                                </Style.Setters>
+                                            </Style>
+                                            <Style Selector="material|MaterialIcon.Folder">
+                                                <Style.Setters>
+                                                    <Setter Property="Kind" Value="Folder" />
+                                                </Style.Setters>
+                                            </Style>
+                                        </material:MaterialIcon.Styles>
+                                    </material:MaterialIcon>
+                                    <TextBlock Text="{Binding Name}" />
+                                </StackPanel>
+                            </TreeDataTemplate>
+                        </TreeView.ItemTemplate>
+                    </TreeView>
+                </Grid>
+            </controls:GroupBox>
+            <TextBlock Grid.Row="0" Grid.RowSpan="3" Grid.Column="2" Text="No Files Loaded"
+                       IsVisible="{Binding !AssetItems.Count}"
+                       Opacity="0.5" HorizontalAlignment="Center" VerticalAlignment="Center" />
+
+            <GridSplitter Grid.Row="3" Grid.Column="2" Background="Transparent" ResizeDirection="Rows" />
+
+            <controls:GroupBox Grid.Row="4" Grid.Column="2">
+                <Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="{ext:Space 1}" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <Grid Grid.Row="0" ColumnDefinitions="* 3.25*">
+                        <TextBlock Grid.Column="0" Text="Export To" VerticalAlignment="Center" Margin="3 0 0 2" />
+                        <ComboBox Grid.Column="1" HorizontalAlignment="Stretch" VerticalAlignment="Center"
+                                  ItemsSource="{ext:EnumToItemsSource {x:Type valorantPorting:EExportTargetType}}"
+                                  SelectedItem="{Binding ExportType, Converter={StaticResource EnumToString}}" />
+                    </Grid>
+
+                    <Grid Grid.Row="2">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="{ext:Space 1}" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <Button Grid.Column="0" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Command="{Binding Preview}">
+                            <controls:MaterialIconText Text="Preview" Icon="CubeScan" HorizontalAlignment="Center"
+                                                       VerticalAlignment="Center" />
+                        </Button>
+
+                        <Button Grid.Column="2" Command="{Binding ExportCommand}" HorizontalAlignment="Stretch"
+                                VerticalAlignment="Stretch" Padding="0">
+                            <Grid>
+                                <ProgressBar MinWidth="0" CornerRadius="5" Background="Transparent" IsVisible="{Binding IsExporting}"
+                                             Minimum="0" Maximum="{Binding ExportChunks}" 
+                                             Value="{Binding ExportProgress}"
+                                             HorizontalAlignment="Stretch" VerticalAlignment="Stretch" />
+                                <controls:MaterialIconText Text="Export" Icon="Export"
+                                                           HorizontalAlignment="Center"
+                                                           VerticalAlignment="Center" />
+                            </Grid>
+                        </Button>
+                    </Grid>
+                </Grid>
+            </controls:GroupBox>
+        </Grid>
+    </controls:GroupBox>
+</UserControl>
