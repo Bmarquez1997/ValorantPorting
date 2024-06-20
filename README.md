@@ -15,13 +15,18 @@ A free and open-source tool created to automate the Valorant porting process to 
 ### Requirements
 * [Blender 4.0 or higher](https://www.blender.org/download/)
 * [Visual C++ Distributables x64](https://docs.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist?view=msvc-170)
-* [.NET 6.0 Runtime](https://dotnet.microsoft.com/en-us/download/dotnet/6.0/runtime)
-> ⚠️ ValorantPorting requires **.NET 6.0 or later** to work, download it from the link above and select the **Windows Desktop x64** version.
+* [.NET 8.0 Runtime](https://dotnet.microsoft.com/en-us/download/dotnet/8.0/runtime)
+> ⚠️ ValorantPorting requires **.NET 8.0 or later** to work, download it from the link above and select the **Windows Desktop x64** version.
 
 ## ValorantPorting Client
-* Download `ValorantPorting.zip` from the [latest release](https://github.com/KaiserM21/ValorantPorting/releases)
-* Unzip the archive to a location where programs have read/write permissions (Avoid Downloads/Desktop)
+* Download `ValorantPorting.exe` from the [latest release](https://github.com/KaiserM21/ValorantPorting/releases) to a location where programs have read/write permissions (Avoid Downloads/Desktop)
 * Launch the `ValorantPorting.exe` executable
+
+## Blender Plugin
+* To install the Blender plugin, add your Blender installation in the Plugin tab and press "sync".
+* NOTE: This needs to be your actual blender.exe, not a desktop/start menu shortcut.  By default, this can be found at
+  
+  ```C:\Program Files\Blender Foundation\<blender.version>\blender.exe```
 
 ## Building ValorantPorting
 
