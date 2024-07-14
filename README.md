@@ -4,7 +4,7 @@ A free and open-source tool created to automate the Valorant porting process to 
 
 #### Powered by [Avalonia UI](https://avaloniaui.net/) and [CUE4Parse](https://github.com/FabianFG/CUE4Parse)
 
-[![Discord](https://discord.com/api/guilds/866821077769781249/widget.png?style=shield)](https://discord.com/invite/valorant3d)
+[![Discord](https://discord.com/api/guilds/866821077769781249/widget.png?style=shield)](https://discord.com/invite/valorant-3d-and-editing-845075183038627881)
 [![Blender](https://img.shields.io/badge/Blender-4.0+-blue?logo=blender&logoColor=white&color=orange)](https://www.blender.org/download/)
 [![Release](https://img.shields.io/github/release/Ka1serM/ValorantPorting)]()
 [![Downloads](https://img.shields.io/github/downloads/Ka1serM/ValorantPorting/total?color=green)]()
