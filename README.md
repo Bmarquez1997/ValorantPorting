@@ -33,7 +33,7 @@ A free and open-source tool created to automate the Valorant porting process to 
 To build ValorantPorting from source, first clone the repository and all of its submodules.
 
 ```
-git clone -b v2 https://github.com/Ka1serM/ValorantPorting --recursive
+git clone -b v2-update https://github.com/Ka1serM/ValorantPorting --recursive
 ```
 
 Then run BuildRelease.bat or open the project directory in a terminal window and publish
