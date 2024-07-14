@@ -1,4 +1,4 @@
-﻿# ValorantPorting [![Discord](https://discord.com/api/guilds/866821077769781249/widget.png?style=shield)](https://discord.com/invite/valorant3d)
+﻿# ValorantPorting [![Discord](https://discord.com/api/guilds/866821077769781249/widget.png?style=shield)](https://discord.com/invite/valorant-3d-and-editing-845075183038627881)
 A free and open-source tool created to automate the Valorant porting process to Blender and Unreal Engine
 
 # Installation
