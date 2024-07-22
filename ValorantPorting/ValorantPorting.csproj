@@ -54,4 +54,10 @@
         <SubType>Code</SubType>
       </Compile>
     </ItemGroup>
+
+    <ItemGroup>
+      <UpToDateCheckInput Remove="Plugins\Blender\Octane\VALORANT_Agent.blend" />
+      <UpToDateCheckInput Remove="Plugins\Blender\Octane\VALORANT_Weapon.blend" />
+      <UpToDateCheckInput Remove="Plugins\Blender\Octane\__init__.py" />
+    </ItemGroup>
 </Project>

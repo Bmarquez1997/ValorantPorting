@@ -7,7 +7,9 @@ import traceback
 from enum import Enum
 from math import radians
 from mathutils import Matrix, Vector, Euler, Quaternion
-from .ue_format import UEFormatImport, UEModelOptions, UEAnimOptions
+import io_scene_ueformat
+from io_scene_ueformat.importer.logic import UEFormatImport
+from io_scene_ueformat.options import UEModelOptions, UEAnimOptions
 from .logger import Log
 from .server import MessageServer
 from .ValorantRig import apply_valorant_rig
@@ -453,8 +455,16 @@ class DataImportTask:
         target_track = target_skeleton.animation_data.nla_tracks.new(prev=None)
         target_track.name = "Sections"
 
-        def import_sections(sections, skeleton, track):
+        active_mesh = get_armature_mesh(target_skeleton)
+        if active_mesh.data.shape_keys is not None:
+            active_mesh.data.shape_keys.name = "Pose Asset Controls"
+            active_mesh.data.shape_keys.animation_data_create()
+            mesh_track = active_mesh.data.shape_keys.animation_data.nla_tracks.new(prev=None)
+            mesh_track.name = "Sections"
+
+        def import_sections(sections, skeleton, track, is_main_skeleton = False):
             total_frames = 0
+            is_metahuman = any(skeleton.data.bones, lambda bone: bone.name == "FACIAL_C_FacialRoot")
             for section in sections:
                 path = section.get("Path")
 
@@ -462,12 +472,40 @@ class DataImportTask:
 
                 anim = self.import_anim(path, skeleton)
                 clear_bone_poses_recursive(skeleton, anim, "faceAttach")
+                
+                section_name = section.get("Name")
+                time_offset = section.get("Time")
+                loop_count = 999 if self.options.get("LoopAnimation") and section.get("Loop") else 1
+                strip = track.strips.new(section_name, time_to_frame(time_offset), anim)
+                strip.repeat = loop_count
+                
+                if (curves := section.get("Curves")) and len(curves) > 0 and active_mesh.data.shape_keys is not None and is_main_skeleton:
+                    key_blocks = active_mesh.data.shape_keys.key_blocks
+                    for key_block in key_blocks:
+                        key_block.value = 0
 
-                strip = track.strips.new(section.get("Name"), time_to_frame(section.get("Time")), anim)
-                strip.repeat = 999 if self.options.get("LoopAnimation") and section.get("Loop") else 1
+                    for curve in curves:
+                        curve_name = curve.get("Name")
+                        if target_block := key_blocks.get(curve_name.replace("CTRL_expressions_", "")):
+                            for key in curve.get("Keys"):
+                                target_block.value = key.get("Value")
+                                target_block.keyframe_insert(data_path="value", frame=key.get("Time") * 30)
+                                
+                        if is_metahuman and (curve_mappings := metahuman_mappings.get(curve_name)):
+                            for curve_mapping in curve_mappings:
+                                 if target_block := key_blocks.get(curve_mapping.replace("CTRL_expressions_", "")):
+                                     for key in curve.get("Keys"):
+                                         target_block.value = key.get("Value")
+                                         target_block.keyframe_insert(data_path="value", frame=key.get("Time") * 30)
+                            
+                    if active_mesh.data.shape_keys.animation_data.action is not None:
+                        strip = mesh_track.strips.new(section_name, time_to_frame(time_offset), active_mesh.data.shape_keys.animation_data.action)
+                        strip.name = section_name
+                        strip.repeat = loop_count
+                        active_mesh.data.shape_keys.animation_data.action = None
             return total_frames
-
-        total_frames = import_sections(data.get("Sections"), target_skeleton, target_track)
+        
+        total_frames = import_sections(data.get("Sections"), target_skeleton, target_track, True)
         if self.options.get("UpdateTimelineLength"):
             bpy.context.scene.frame_end = total_frames
 
@@ -520,10 +558,12 @@ class DataImportTask:
                 path, name = self.format_image_path(path)
                 bpy.ops.import_image.to_plane(shader="EMISSION", files=[{"name": path}])
 
+
     def import_sound_data(self, data):
         for sound in data.get("Sounds"):
             path = sound.get("Path")
             self.import_sound(path, time_to_frame(sound.get("Time")))
+        
 
     def import_model(self, mesh, collection=None, parent=None, allow_3d_cursor_spawn=False):
         mesh_type = mesh.get("Type")
@@ -534,6 +574,10 @@ class DataImportTask:
             collection = bpy.context.scene.collection
         if mesh.get("IsEmpty"):
             imported_object = bpy.data.objects.new(object_name, None)
+            
+            imported_object.rotation_euler = make_euler(mesh.get("Rotation"))
+            imported_object.location = make_vector(mesh.get("Location"), mirror_y=True) * 0.01
+            imported_object.scale = make_vector(mesh.get("Scale"))
             collection.objects.link(imported_object)
             for child in mesh.get("Children"):
                 self.import_model(child, collection, imported_object)
@@ -572,25 +616,181 @@ class DataImportTask:
             out_props = {}
             for mesh in self.meshes:
                 meta = mesh.get("Meta")
+                if meta is None:
+                    continue
+                    
                 for search_prop in search_props:
                     if found_key := first(meta.keys(), lambda key: key == search_prop):
+                        if out_props.get(found_key):
+                            if meta.get(found_key):
+                                Log.warn(f"{found_key}: metadata already set "
+                                         "with content from different mesh but "
+                                         f"also found on {mesh.get('Name')} "
+                                         "which will be ignored")
+                            continue
                         out_props[found_key] = meta.get(found_key)
             return out_props
+
+        # fetch pose data
+        meta = get_meta(["PoseData", "ReferencePose"])
+        if imported_mesh is not None and (pose_data := meta.get("PoseData")):
+            is_head = mesh_type == "Head"
+            shape_keys = imported_mesh.data.shape_keys
+            armature: bpy.types.Object = imported_object
+            original_mode = bpy.context.active_object.mode
+            try:
+                bpy.ops.object.mode_set(mode='OBJECT')
+                armature_modifier: bpy.types.ArmatureModifier = first(imported_mesh.modifiers, lambda mod: mod.type == "ARMATURE")
+
+                # Grab reference pose data
+                reference_pose = meta.get("ReferencePose", dict())
+
+                # Check how many bones are scaled in the reference pose
+                face_attach_scale = Vector((1, 1, 1))
+                for entry in reference_pose:
+                    scale = make_vector(entry.get('Scale'))
+                    if scale != Vector((1, 1, 1)):
+                        if entry.get('BoneName', '').casefold() == 'faceattach':
+                            face_attach_scale = scale
+                        Log.warn(f"{imported_mesh.name}: Non-zero scale: {entry}")
+
+                if not shape_keys:
+                    # Create Basis shape key
+                    imported_mesh.shape_key_add(name="Basis", from_mix=False)
+
+                # Grab 'root' bone we'd consider pose data to apply up to
+                # NOTE: If there is a facial related pose that requires
+                # movement of some bone that does not have neck_01 as an
+                # eventual parent, this bit prevents that. I think this is
+                # unlikely but not impossible hence this simple reminder
+                root_bone_name = 'neck_01'
+                root_bone = get_case_insensitive(armature.pose.bones, root_bone_name)
+                if not root_bone:
+                    Log.warn(f"{imported_mesh.name}: Failed to find root bone "
+                             f"'{root_bone_name}' in '{armature.name}', all "
+                             "bones will be considered during import of "
+                             "PoseData")
+
+                # NOTE: I think faceAttach affects the expected location
+                # I'm making this assumption from observation of an old
+                # export of face poses for Polar Patroller.
+                loc_scale = (0.01 if self.options.get("ScaleDown") else 1)
+                for pose in pose_data:
+                    # If there are no influences, don't bother
+                    if not (influences := pose.get('Keys')):
+                        continue
+
+                    if not (pose_name := pose.get('Name')):
+                        Log.warn(f"{imported_mesh.name}: skipping pose data "
+                                 f"with no pose name: {pose}")
+                        continue
+
+                    # Enter pose mode
+                    bpy.context.view_layer.objects.active = armature
+                    bpy.ops.object.mode_set(mode='POSE')
+
+                    # Reset all transforms to default
+                    bpy.ops.pose.select_all(action='SELECT')
+                    bpy.ops.pose.transforms_clear()
+                    bpy.ops.pose.select_all(action='DESELECT')
+
+                    # Move bones accordingly
+                    contributed = False
+                    for bone in influences:
+                        if not (bone_name := bone.get('Name')):
+                            Log.warn(f"{imported_mesh.name} - {pose_name}: "
+                                     f"empty bone name for pose '{pose}'")
+                            continue
+
+                        pose_bone: bpy.types.PoseBone = get_case_insensitive(armature.pose.bones, bone_name)
+                        if not pose_bone:
+                            # For cases where pose data tries to move a non-existent bone
+                            # i.e. Poseidon has no 'Tongue' but it's in the pose asset
+                            if is_head:
+                                # There are likely many missing bones in non-Head parts, but we
+                                # process as many as we can.
+                                Log.warn(f"{imported_mesh.name} - {pose_name}: "
+                                         f"'{bone_name}' influence skipped "
+                                         "since it was not found in "
+                                         f"'{armature.name}'")
+                            continue
+                        
+                        if root_bone and not bone_has_parent(pose_bone, root_bone):
+                            Log.warn(f"{imported_mesh.name} - {pose_name}: "
+                                     f"skipped '{pose_bone.name}' since it does "
+                                     f"not have '{root_bone.name}' as a parent")
+                            continue
+
+                        # Verify that the current bone and all of its children
+                        # have at least one vertex group associated with it
+                        if not bone_hierarchy_has_vertex_groups(pose_bone, imported_mesh.vertex_groups):
+                            continue
+
+                        # Reset bone to identity
+                        pose_bone.matrix_basis.identity()
+
+                        rotation = bone.get('Rotation')
+                        if not rotation.get('IsNormalized'):
+                            Log.warn(f"{imported_mesh.name} - {pose_name}: "
+                                     "imported rotation not normalized for "
+                                     f"'{bone_name}'")
+
+                        edit_bone = pose_bone.bone
+                        post_quat = Quaternion(post_quat) if (post_quat := edit_bone.get("post_quat")) else Quaternion()
+
+                        q = post_quat.copy()
+                        q.rotate(make_quat(rotation))
+                        quat = post_quat.copy()
+                        quat.rotate(q.conjugated())
+                        pose_bone.rotation_quaternion = quat.conjugated() @ pose_bone.rotation_quaternion
+
+                        loc = (make_vector(bone.get('Location'), mirror_y=True))
+                        loc = Vector((loc.x * face_attach_scale.x,
+                                        loc.y * face_attach_scale.y,
+                                        loc.z * face_attach_scale.z))
+                        loc.rotate(post_quat.conjugated())
+
+                        pose_bone.location = pose_bone.location + loc * loc_scale
+                        pose_bone.scale = (Vector((1, 1, 1)) + make_vector(bone.get('Scale')))
+
+                        pose_bone.rotation_quaternion.normalize()
+                        contributed = True
+
+                    # Do not create shape keys if nothing changed
+                    if not contributed:
+                        continue
+
+                    # Create blendshape from armature
+                    bpy.ops.object.mode_set(mode='OBJECT')
+                    bpy.context.view_layer.objects.active = imported_mesh
+                    bpy.ops.object.modifier_apply_as_shapekey(keep_modifier=True,
+                                                                modifier=armature_modifier.name)
+
+                    # Use name from pose data
+                    imported_mesh.data.shape_keys.key_blocks[-1].name = pose_name
+            except Exception as e:
+                Log.error("Failed to import PoseAsset data from "
+                          f"{imported_mesh.name}: {e}")
+            finally:
+                # Final reset before re-entering regular import mode.
+                bpy.context.view_layer.objects.active = armature
+                bpy.ops.object.mode_set(mode='POSE')
+                bpy.ops.pose.select_all(action='SELECT')
+                bpy.ops.pose.transforms_clear()
+                bpy.ops.pose.select_all(action='DESELECT')
+                bpy.ops.object.mode_set(mode=original_mode)
 
         # fetch metadata
         match mesh_type:
             case "Body":
-                meta = get_meta(["SkinColor"])
+                meta.update(get_meta(["SkinColor"]))
             case "Head":
-                meta = get_meta(["MorphNames", "HatType", "PoseData"])
-                if meta is not None and meta.get("MorphNames") is not None:
-                    shape_keys = imported_mesh.data.shape_keys
-                    if (morph_name := meta.get("MorphNames").get(meta.get("HatType"))) and shape_keys is not None:
-                        for key in shape_keys.key_blocks:
-                            if key.name.casefold() == morph_name.casefold():
-                                key.value = 1.0
-            case _:
-                meta = {}
+                meta.update(get_meta(["MorphNames", "HatType"]))
+                shape_keys = imported_mesh.data.shape_keys
+                if  shape_keys is not None and (morph_name := meta.get("MorphNames").get(meta.get("HatType"))):
+                    for key in shape_keys.key_blocks:
+                        if key.name.casefold() == morph_name.casefold():
+                            key.value = 1.0
 
         if self.options.get("UseQuads"):
             bpy.context.view_layer.objects.active = imported_mesh
@@ -702,8 +902,6 @@ class DataImportTask:
 
         if texture_data:
             for texture_data_inst in texture_data:
-                print('Texture data inst:')
-                print(texture_data_inst)
                 replace_or_add_parameter(textures, texture_data_inst.get("Diffuse"))
                 replace_or_add_parameter(textures, texture_data_inst.get("Normal"))
                 replace_or_add_parameter(textures, texture_data_inst.get("Specular"))
@@ -736,7 +934,7 @@ class DataImportTask:
         socket_mappings = default_mappings
 
         def get_param(source, name):
-            found = first(source, lambda param: param.get("Name") == name)
+            found = first(source, lambda param: param.get("Name").casefold() == name.casefold())
             if found is None:
                 return None
             return found.get("Value")
@@ -748,12 +946,12 @@ class DataImportTask:
             return found.get("Value")
 
         def get_param_data(source, name):
-            found = first(source, lambda param: param.get("Name") == name)
+            found = first(source, lambda param: param.get("Name").casefold() == name.casefold())
             if found is None:
                 return None
             return found
 
-        def texture_param(data, target_mappings, target_node=shader_node, add_unused_params=False):
+        def texture_param(data, target_mappings, target_node = shader_node, add_unused_params = False):
             try:
                 name = data.get("Name")
                 path = data.get("Value")
@@ -765,7 +963,7 @@ class DataImportTask:
                 node.interpolation = "Smart"
                 node.hide = True
 
-                mappings = first(target_mappings.textures, lambda x: x.name == name)
+                mappings = first(target_mappings.textures, lambda x: x.name.casefold() == name.casefold())
                 if mappings is None:
                     if add_unused_params:
                         nonlocal unused_parameter_offset
@@ -793,12 +991,12 @@ class DataImportTask:
             except Exception as e:
                 traceback.print_exc()
 
-        def scalar_param(data, target_mappings, target_node=shader_node, add_unused_params=False):
+        def scalar_param(data, target_mappings, target_node = shader_node, add_unused_params = False):
             try:
                 name = data.get("Name")
                 value = data.get("Value")
-
-                mappings = first(target_mappings.scalars, lambda x: x.name == name)
+                
+                mappings = first(target_mappings.scalars, lambda x: x.name.casefold() == name.casefold())
                 if mappings is None:
                     if add_unused_params:
                         nonlocal unused_parameter_offset
@@ -817,12 +1015,12 @@ class DataImportTask:
             except Exception as e:
                 traceback.print_exc()
 
-        def vector_param(data, target_mappings, target_node=shader_node, add_unused_params=False):
+        def vector_param(data, target_mappings, target_node = shader_node, add_unused_params = False):
             try:
                 name = data.get("Name")
                 value = data.get("Value")
 
-                mappings = first(target_mappings.vectors, lambda x: x.name == name)
+                mappings = first(target_mappings.vectors, lambda x: x.name.casefold() == name.casefold())
                 if mappings is None:
                     if add_unused_params:
                         nonlocal unused_parameter_offset
@@ -843,12 +1041,12 @@ class DataImportTask:
             except Exception as e:
                 traceback.print_exc()
 
-        def component_mask_param(data, target_mappings, target_node=shader_node, add_unused_params=False):
+        def component_mask_param(data, target_mappings, target_node = shader_node, add_unused_params = False):
             try:
                 name = data.get("Name")
                 value = data.get("Value")
-
-                mappings = first(target_mappings.component_masks, lambda x: x.name == name)
+                
+                mappings = first(target_mappings.component_masks, lambda x: x.name.casefold() == name.casefold())
                 if mappings is None:
                     if add_unused_params:
                         nonlocal unused_parameter_offset
@@ -865,12 +1063,12 @@ class DataImportTask:
             except Exception as e:
                 traceback.print_exc()
 
-        def switch_param(data, target_mappings, target_node=shader_node, add_unused_params=False):
+        def switch_param(data, target_mappings, target_node = shader_node, add_unused_params = False):
             try:
                 name = data.get("Name")
                 value = data.get("Value")
 
-                mappings = first(target_mappings.switches, lambda x: x.name == name)
+                mappings = first(target_mappings.switches, lambda x: x.name.casefold() == name.casefold())
                 if mappings is None:
                     if add_unused_params:
                         nonlocal unused_parameter_offset
@@ -1196,7 +1394,7 @@ def armature_from_selection():
     return armature_obj
 
 
-def time_to_frame(time, fps=30):
+def time_to_frame(time, fps = 30):
     return int(round(time * fps))
 
 
@@ -1256,6 +1454,7 @@ def constraint_object(child: bpy.types.Object, parent: bpy.types.Object, bone: s
     constraint.subtarget = bone
     child.rotation_mode = 'XYZ'
     child.rotation_euler = rot
+    child.location = Vector((0, 0, 0))
     constraint.inverse_matrix = Matrix()
 
 
@@ -1264,7 +1463,7 @@ def make_vector(data, mirror_y=False):
 
 
 def make_quat(data):
-    return Quaternion((data.get("W"), data.get("X"), data.get("Y"), data.get("Z")))
+    return Quaternion((-data.get("W"), data.get("X"), -data.get("Y"), data.get("Z")))
 
 
 def make_euler(data):
@@ -1306,7 +1505,7 @@ def get_case_insensitive(source, string):
     for item in source:
         if item.name.casefold() == string.casefold():
             return item
-
+    return None
 
 def replace_or_add_parameter(list, replace_item):
     if replace_item is None:
@@ -1425,6 +1624,22 @@ def clear_bone_poses_recursive(skeleton, anim, bone_name):
     bpy.ops.object.mode_set(mode='OBJECT')
 
 
+def bone_hierarchy_has_vertex_groups(bone, vertex_groups):
+    if bone.name in vertex_groups:
+       return True
+    children = bone.children_recursive
+    for child in children:
+        if child.name in vertex_groups:
+            return True
+    return False
+
+
+def bone_has_parent(child, parent):
+    if child == parent:
+        return True
+    return parent in child.parent_recursive
+
+
 class LazyInit:
 
     def __init__(self, gen):
@@ -1441,7 +1656,7 @@ class LazyInit:
         return self.data
 
 
-def apply_tasty_rig(master_skeleton, scale, use_finger_ik=True, use_dyn_bone_shape=True):
+def apply_tasty_rig(master_skeleton, scale, use_finger_ik = True, use_dyn_bone_shape = True):
     master_skeleton["is_tasty_rig"] = True
     armature_data = master_skeleton.data
     use_finger_fk = not use_finger_ik

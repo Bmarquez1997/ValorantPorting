@@ -8,7 +8,7 @@ namespace ValorantPorting;
 
 public static class Globals
 {
-    public static readonly VPVersion Version = new(2, 0, 0);
+    public static readonly VPVersion Version = new(2, 0, 1);
     public static readonly string VersionString = Version.ToString();
 
     public const string DISCORD_URL = "https://discord.gg/DZ5YFXdBA6";

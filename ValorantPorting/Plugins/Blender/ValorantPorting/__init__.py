@@ -1,18 +1,17 @@
 import bpy
 import traceback
 import zstandard as zstd
-import ValorantRig
+import .ValorantRig
 from .logger import Log
 from .server import ImportServer, MessageServer
 from .import_task import ImportTask
-from . import ue_format
 
 bl_info = {
     "name": "Valorant Porting",
     "description": "Valorant Porting Blender Plugin",
     "author": "Half, Zain, DeveloperChipmunk",
     "blender": (4, 0, 0),
-    "version": (2, 0, 0),
+    "version": (2, 0, 1),
     "category": "Import",
 }
 
@@ -36,7 +35,8 @@ operators = [
 
 
 def register():
-    ue_format.zstd_decompresser = zstd.ZstdDecompressor()
+    import io_scene_ueformat
+    io_scene_ueformat.zstd_decompresser = zstd.ZstdDecompressor()
 
     global import_server
     import_server = ImportServer()
